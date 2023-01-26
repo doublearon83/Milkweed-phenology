@@ -2,7 +2,7 @@ require(rnoaa)
 require(dplyr)
 
 # data from US-NPN (https://data.usanpn.org/observations/get-started)
-plant_data <- read.csv("/Users/17163/Downloads/datasheet_1667486095636/status_intensity_observation_data.csv",header=T)
+plant_data <- read.csv("status_intensity_observation_data.csv",header=T)
 
 # create date variable (remove time and missing values)
 plant_data$Date <- substr(plant_data$Update_Datetime,1,10)
