@@ -1,5 +1,6 @@
 require(rnoaa)
 require(dplyr)
+require(tidyverse)
 
 # data from US-NPN (https://data.usanpn.org/observations/get-started)
 status_intensity_observation <- read.csv("status_intensity_observation_data - Copy.csv",header=T)
@@ -91,6 +92,8 @@ for (i in 1:nrow(plant_data_id)) {
                                              var=c("TMAX","PRCP"))
   }
   
+  stat_met_list <- list(met_data_from2016, met_data_from2017, met_data_from2018, met_data_from2019, met_data_from2020, met_data_from2021, met_data_from2022)
+  stat_met_list %>% reduce(full_join, by = "id")
   
   # join stations data with met_data
   stat_met <- inner_join(met_data_from2022,stations,by="id")
