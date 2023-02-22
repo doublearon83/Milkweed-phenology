@@ -92,23 +92,10 @@ for (i in 1:nrow(plant_data_id)) {
                                              var=c("TMAX","PRCP"))
   }
   
-  stat_met_list <- list(met_data_from2016, met_data_from2017, met_data_from2018, met_data_from2019, met_data_from2020, met_data_from2021, met_data_from2022)
-  stat_met_list %>% reduce(full_join, by = "id")
   
-  # join stations data with met_data
-  stat_met <- inner_join(met_data_from2022,stations,by="id")
-  # join stations data with met_data
-  stat_met <- inner_join(met_data_from2021,stations,by="id")
-  # join stations data with met_data
-  stat_met <- inner_join(met_data_from2020,stations,by="id")
-  # join stations data with met_data
-  stat_met <- inner_join(met_data_from2019,stations,by="id")
-  # join stations data with met_data
-  stat_met <- inner_join(met_data_from2018,stations,by="id")
-  # join stations data with met_data
-  stat_met <- inner_join(met_data_from2017,stations,by="id")
-  # join stations data with met_data
-  stat_met <- inner_join(met_data_from2016,stations,by="id")
+#Dataframe containing max preecipitation and temperature values for
+stat_met_list <- rbind(met_data_from2016, met_data_from2017, met_data_from2018, met_data_from2019, met_data_from2020, met_data_from2021, met_data_from2022)
+  
   
 
 
