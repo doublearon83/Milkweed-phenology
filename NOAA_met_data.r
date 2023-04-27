@@ -53,3 +53,6 @@ stat_met <- inner_join(met_data,stations,by="id")
 stat_met$Date <- as.character(stat_met$date) # rename date to Date, so dataframes can merge
 plant_data$Site_ID <- as.character(plant_data$Site_ID)
 plant_data <- inner_join(plant_data,stat_met, by=c("Site_ID","Date"))
+
+
+kevin is here

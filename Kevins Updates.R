@@ -54,6 +54,7 @@ assign(paste("stations",unique(status_intensity_observation$Year)[i],sep=""),sta
                                            date_min="2014-3-01",
                                            date_max="2014-11-30",
                                            var=c("TMAX","PRCP"))
+  
   for( i in 2: nrow(plant_data_id_2014)){
   met_data_from2014 <- rbind(met_data_from2014,meteo_pull_monitors(stations2014$id[i],
                                 date_min="2014-3-01",

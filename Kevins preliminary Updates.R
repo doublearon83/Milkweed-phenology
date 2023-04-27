@@ -45,16 +45,16 @@ combined_data <- data.frame()
                         var = c("TMAX", "PRCP"))
   }) %>% bind_rows()
   
-  #Dataframe containing max preecipitation and temperature values for
-  met_data_combo <- rbind(met_data_from2016, met_data_from2017, met_data_from2018, met_data_from2019, met_data_from2020, met_data_from2021, met_data_from2022)
-  
+
+  met_data_combo <- rbind(met_data_from2016, met_data_from2017, met_data_from2018, met_data_from2019)
   
   # join met_data with plant_data
-  stat_met <- inner_join(met_data_combo, plant_data_id, by = "id")
+  stat_met <- inner_join(met_data_combo, stations, by = "id")
+  stat_met <- inner_join(stat_met, sub_data, by = "Site_ID")
   
   # combine data frames for each year
   combined_data <- rbind(combined_data, stat_met)
-  }
+
   
   # create a data frame of all unique station IDs
   station_ids <- unique(stations$id)
@@ -76,9 +76,11 @@ combined_data <- data.frame()
   met_data <- distinct(met_data, station_id, date, .keep_all = TRUE)
   met_data <- filter(met_data, !is.na(TMAX) & !is.na(PRCP))
   
+  # join the station data with the meteorological data
+  station_data <- left_join(stations, met_data, by = "id")
   
   # calculate mean precipitation and Tmax per station for the growing season
-  growing_season <- filter(station_data, date_min = "2017-03-01" & date_max = "2022-11-30")
+  growing_season <- filter(station_data, date_min >= "2017-03-01" & date_max <= "2022-11-30")
   growing_season_summary <- group_by(growing_season, station_id) %>%
     summarize(mean_precip = mean(PRCP), mean_tmax = mean(TMAX))
   
@@ -90,4 +92,3 @@ combined_data <- data.frame()
   plant_data_with_summary_summary <- group_by(plant_data_with_summary, Site_ID) %>%
     summarize(mean_precip = mean(mean_precip), mean_tmax = mean(mean_tmax))
   
-#save dataframes  using write.csv(dataframe, file = '/Users/admin/newfile_csv' row.names = FALSE)

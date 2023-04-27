@@ -1,4 +1,4 @@
-#Newest Updates.
+
 
 require(rnoaa)
 require(dplyr)
@@ -22,7 +22,7 @@ plant_data_id <- data.frame(plant_id,latitude,longitude)
 
 names(plant_data_id)[1] <- "id"
 
-#subsettig phenology dataet
+#subsetting phenology dataet
 status_intensity_observation_sub  <- status_intensity_observation[,c(4,5,13,15,16,18)]
 
 
@@ -43,13 +43,15 @@ stations2$plant_id <- names(stations)
 stat_plant <- stations2
 
 #Saving Dataframe stations
-write.csv(stations, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-phenology/stations_csv', row.names = FALSE)
+write.csv(stat_plant, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-phenology/stat_plant_csv', row.names = FALSE)
 
 #####################################################
 #####################################################
-
 #uploading stations data
-stations <- read.csv("stations_csv", header = TRUE)
+stations <- read.csv("stations2", header = TRUE)
+
+#uploading stat_plant_data
+stat_plant <- read.csv("stat_plant", header = TRUE)
 
 
 ######DO NOT RUN UNLESS UPDATING Met data############
@@ -57,7 +59,7 @@ stations <- read.csv("stations_csv", header = TRUE)
 # pull meteorological data (march - november growing season) for stations by date
 years <- seq(2016, 2022)
 met_data <- lapply(years, function(years) {
-  meteo_pull_monitors(unique(stations$id),
+  meteo_pull_monitors(unique(stations2$id),
                       date_min = paste0(years, "-03-01"),
                       date_max = paste0(years, "-11-30"),
                       var = c("TMAX", "PRCP"))
@@ -75,46 +77,73 @@ write.csv(met_data, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-pheno
 met_data <- read.csv("met_data_csv", header = TRUE)
 
 names(plant_data_id)[1] <- "stations.id"
-
-
-# join met_data with plant_data
-plant_meteo_data <- merge(plant_data_id, met_data, by = "stations.id")
-
-stat_plant <- data.frame(plant_data_id,stations$id)
-
-
-
-names(stat_plant)[1] <- "id"
-
-
-# merge the stat_plant data with met_data by id
-plant_meteo_data <- merge(stat_plant, met_data[,c("stations.id","date","tmax","prcp")], by = "stations.id")
-
-
-
-# join stat_mean data with status_intesnity_observation_sub
-plant_meteo_stations_data <- inner_join(plant_meteo_data,status_intensity_observation_sub, by="id")
+names(met_data)[1] <- "stations.id"
 
 #calcuate means by station and year
 
 # create year variable
 met_data$Year <- substr(met_data$date, 1, 4)
 
-tapply(met_data$tmax,met_data[,c("id","Year")],mean,na.rm=T)
-
 stat_mean <- met_data %>%
-  
-  group_by(Year,id) %>%
+  group_by(Year,stations.id) %>%
   summarize(mean_precip = mean(prcp, na.rm = TRUE),
             mean_tmax = mean(tmax, na.rm = TRUE))
 
-#change Individual_ID to id
-names(status_intensity_observation_sub)[3] <- "id"
-status_intensity_observation_sub$id <- as.integer(status_intensity_observation_sub$id)
-stat_mean$id <- as.integer(stat_mean$id)
+status_intensity_observation_sub$Year <- substr(status_intensity_observation$Observation_Date, 1, 4)
 
-# join stat_mean data with status_intesnity_observation_sub
-plant_meteo_data <- inner_join(stat_mean,status_intensity_observation_sub,by="stations.id")
+names(status_intensity_observation_sub)[3] <- "plant_id"
+names(stat_plant)[1] <- "stations.id"
+stat_plant$plant_id <- as.integer(stat_plant$plant_id)
 
-merged_data <- merge(status_intensity_observation_sub, plant_meteo_data[c("id", "tmax", "prcp")], by = "id")
+plant_status <- left_join(status_intensity_observation_sub,stat_plant,by = "plant_id")
 
+plant_status_met <- left_join(plant_status,stat_mean, by = c("stations.id","Year"))
+
+
+
+# Get the first observation date for each plant and year
+first_observation <- plant_status_met %>%
+  group_by(Year, plant_id, Phenophase_Status) %>%
+  summarize(first_observation_date = min(Observation_Date)) %>%
+  filter(Phenophase_Status==0)
+
+
+# Plot for Mean flowering time by year
+library(lubridate)
+
+# convert date column to Date format
+first_observation$first_observation_date <- as.Date(first_observation$first_observation_date)
+
+# create a new column for day of year
+first_observation$day_of_year <- yday(first_observation$first_observation_date)
+
+# calculate mean flowering time by year
+mean_flowering <- first_observation %>%
+  group_by(Year, plant_id, Phenophase_Status) %>%
+  summarize(mean_flowering_time = mean(day_of_year)) 
+  
+  # plot mean flowering time by year
+  ggplot(mean_flowering, aes(x = Year, y = mean_flowering_time)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Year", y = "Mean flowering time") +
+  theme_bw()
+
+                 
+
+#Plot for Mean temperature compared to mean flowering time
+  merged_temp_flowering <- merge(stat_mean, mean_flowering, by = "Year")
+  
+  
+ggplot(merged_temp_flowering, aes(x = mean_tmax, y = mean_flowering_time)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Mean_temperature", y = "Mean flowering time") +
+  theme_bw()
+
+#Plot for Mean flowering date by precipitation
+ggplot(merged_temp_flowering, aes(x = mean_precip, y = mean_flowering_time)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Mean precipitation", y = "Mean flowering time") +
+  theme_bw()
