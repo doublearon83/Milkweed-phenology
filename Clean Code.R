@@ -108,42 +108,53 @@ first_observation <- plant_status_met %>%
   filter(Phenophase_Status==0)
 
 
-# Plot for Mean flowering time by year
 library(lubridate)
+library(ggplot2)
 
 # convert date column to Date format
-first_observation$first_observation_date <- as.Date(first_observation$first_observation_date)
+plant_status_met$Observation_Date <- as.Date(plant_status_met$Observation_Date)
+
+# get the first observation date for each plant and year where phenophase_status is 1 followed by 0
+first_observation <- plant_status_met %>%
+  arrange(plant_id, Observation_Date) %>%
+  group_by(Year, plant_id) %>%
+  filter(Phenophase_Status == 1 & lead(Phenophase_Status) == 0) %>%
+  summarize(first_observation_date = min(Observation_Date), Phenophase_Status = 1)
 
 # create a new column for day of year
 first_observation$day_of_year <- yday(first_observation$first_observation_date)
 
+# filter for flowering phenophase
+flowering_data <- plant_status_met %>%
+  filter(Phenophase == "Flowering") %>%
+  left_join(first_observation, by = c("plant_id", "Year", "Phenophase_Status"))
+
 # calculate mean flowering time by year
-mean_flowering <- first_observation %>%
-  group_by(Year, plant_id, Phenophase_Status) %>%
-  summarize(mean_flowering_time = mean(day_of_year)) 
-  
-  # plot mean flowering time by year
-  ggplot(mean_flowering, aes(x = Year, y = mean_flowering_time)) +
-  geom_line() +
+mean_flowering <- flowering_data %>%
+  group_by(Year) %>%
+  summarize(mean_flowering_time = mean(yday(Observation_Date) - yday(first_observation_date)))
+
+# plot mean flowering time by year
+ggplot(mean_flowering, aes(x = Year, y = mean_flowering_time)) +
   geom_point() +
   labs(x = "Year", y = "Mean flowering time") +
   theme_bw()
 
-                 
 
+                 
 #Plot for Mean temperature compared to mean flowering time
   merged_temp_flowering <- merge(stat_mean, mean_flowering, by = "Year")
   
   
-ggplot(merged_temp_flowering, aes(x = mean_tmax, y = mean_flowering_time)) +
-  geom_line() +
-  geom_point() +
-  labs(x = "Mean_temperature", y = "Mean flowering time") +
-  theme_bw()
+  # plot mean flowering time compared to temperature
+  ggplot(merged_temp_flowering, aes(x = mean_tmax, y = mean_flowering_time)) +
+    geom_point() +
+    labs(x = "Average Temperature (Celsius)", y = "Mean flowering time") +
+    theme_bw()
+
 
 #Plot for Mean flowering date by precipitation
 ggplot(merged_temp_flowering, aes(x = mean_precip, y = mean_flowering_time)) +
-  geom_line() +
   geom_point() +
   labs(x = "Mean precipitation", y = "Mean flowering time") +
   theme_bw()
