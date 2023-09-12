@@ -1,0 +1,12 @@
+Parameter,Setting
+Data Type:,Status and Intensity
+Start Date:,2010-01-01
+End Date:,2023-06-23
+States:,
+Species:,common milkweed (Asclepias syriaca)
+Phenophase Categories:,"Flowers, Leaves, Fruits, Pollen cones, Needles, Seed cones"
+Output Fields:,"AGDD, AGDD in F, Tmax Winter, Tmax Spring, Tmax Summer, Tmax Fall, Tmax, Tmax in F, Tmin Winter, Tmin Spring, Tmin Summer, Tmin Fall, Tmin, Tmin in F, Prcp Winter, Prcp Spring, Prcp Summer, Prcp Fall, Prcp, Accum Prcp, Daylength"
+Quality Flags:,ignored
+Partner Groups:,
+Integrated Datasets:,
+Stations:,
