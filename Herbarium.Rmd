@@ -1,0 +1,45 @@
+---
+title: "Herbarium Data"
+author: "Sarah Betts"
+date: "2024-06-11"
+output: html_document
+---
+
+```{r}
+#upload herbarium data
+library(readr)
+HerbariumData <- read_csv("HerbariumData.csv")
+```
+
+```{r}
+#Run regression (controlling for lat, long, and flowering state)
+library(tidyverse)
+library(car)
+#make phenophase a factor instead of character to be compared
+HerbariumData_test <-
+  HerbariumData %>%
+  mutate(Phenophase = as.factor(Phenophase)) 
+
+#create a date of collection variable
+HerbariumData_test <-
+HerbariumData %>%
+  mutate(collection_date = as.Date(paste(Year, Month, Day, sep = "-")),
+         julian_date = yday(HerbariumData_test$collection_date),
+         Latitude = as.numeric(Latitude))
+
+names(HerbariumData_test)[3]<- "Phenophase_detail"
+
+HerbariumData_fl <-
+  HerbariumData_test %>%
+  filter(Phenophase == "fl")
+
+#run linear regression
+model_fl <- lm(julian_date ~ Phenophase_detail + Latitude + Longitude + Year, data = HerbariumData_fl)
+Anova(model_fl)
+
+```
+
+
+
+
+
