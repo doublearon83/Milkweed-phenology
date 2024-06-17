@@ -7,11 +7,12 @@ output: html_document
 
 ```{r}
 #upload herbarium data
-library(readr)
-HerbariumData <- read_csv("HerbariumData.csv")
+#library(readr)
+#HerbariumData <- read_csv("HerbariumData.csv")
 
-#library(googlesheets4)
-#HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_sx9veANUHr0jn4caxJzPPwRhRyDKLGFo/edit#gid=0")
+library(googlesheets4)
+gs4_deauth()
+HerbariumData_ <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_sx9veANUHr0jn4caxJzPPwRhRyDKLGFo/edit#gid=0")
 
 ```
 
@@ -20,15 +21,12 @@ HerbariumData <- read_csv("HerbariumData.csv")
 #Run regression (controlling for lat, long, and flowering state)
 library(tidyverse)
 library(car)
-#make phenophase a factor instead of character to be compared
-HerbariumData_test <-
-  HerbariumData %>%
-  mutate(Phenophase = as.factor(Phenophase)) 
 
 #create a date of collection variable
 HerbariumData_test <-
 HerbariumData %>%
-  mutate(collection_date = as.Date(paste(Year, Month, Day, sep = "-")),
+  mutate(Phenophase = as.factor(Phenophase),
+         collection_date = as.Date(paste(Year, Month, Day, sep = "-")),
          julian_date = yday(collection_date),
          Latitude = as.numeric(Latitude))
 
