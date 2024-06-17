@@ -6,13 +6,13 @@ output: html_document
 ---
 
 ```{r}
-#upload herbarium data
-#library(readr)
-#HerbariumData <- read_csv("HerbariumData.csv")
+# #upload herbarium data
+# library(readr)
+# HerbariumData <- read_csv("HerbariumData.csv")
 
 library(googlesheets4)
 gs4_deauth()
-HerbariumData_ <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_sx9veANUHr0jn4caxJzPPwRhRyDKLGFo/edit#gid=0")
+HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_sx9veANUHr0jn4caxJzPPwRhRyDKLGFo/edit#gid=0")
 
 ```
 
@@ -22,13 +22,14 @@ HerbariumData_ <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35
 library(tidyverse)
 library(car)
 
-#create a date of collection variable
+
 HerbariumData_test <-
 HerbariumData %>%
   mutate(Phenophase = as.factor(Phenophase),
          collection_date = as.Date(paste(Year, Month, Day, sep = "-")),
          julian_date = yday(collection_date),
          Latitude = as.numeric(Latitude))
+#sum(is.null(HerbariumData$Latitude))
 
 names(HerbariumData_test)[3]<- "Phenophase_detail"
 
@@ -51,7 +52,9 @@ mean_julian_data <-
   group_by(Year, Phenophase_detail)%>%
   summarize(avg_julian = mean(julian_date, na.rm = TRUE), .groups = 'drop')
 
-ggplot(mean_julian_data, aes(x = Year, y = avg_julian, color = Phenophase_detail)) +
+ggplot(mean_julian_data, aes(x = Year, y = avg_julian)) +
+  #geom_line()+
+  geom_smooth(method="lm")+
   geom_point() +
   labs(title = "Mean Julian Date by Phenophase Detail and Year",
        x = "Year",
@@ -59,7 +62,7 @@ ggplot(mean_julian_data, aes(x = Year, y = avg_julian, color = Phenophase_detail
        color = "Phenophase Detail")
  
 ggplot(mean_julian_data, aes(x = Year, y = avg_julian, color = Phenophase_detail)) +
-  geom_line() +
+  #geom_line() +
   geom_point(size=1)+
   labs(title = "Mean Julian Date by Phenophase Detail and Year",
        x = "Year",
