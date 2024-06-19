@@ -40,6 +40,10 @@ phen_data_0_1$Year_s <- phen_data_0_1$Year-(min(phen_data_0_1$Year)+1)
 phen_data_0_1$Elevation_s <- scale(phen_data_0_1$Elevation_in_Meters)
 
 
+#remove some unnecessary variables
+phen_data_0_1 <- subset(phen_data_0_1, select = -c(Intensity_Category_ID,Intensity_Value,
+                                                   Abundance_Value,Update_Datetime))
+
 #remove 2010 data (too few)
 phen_data_0_1 <- dplyr::filter(phen_data_0_1,Year>2010)
  
@@ -67,7 +71,7 @@ require(ggplot2)
 
 (LG_plot <- ggplot(phen_data_0_1, aes(x = gs_temp_z, y = Day_of_Year)) +
     geom_point(size = 3, color = "blue") +
-    geom_line(aes(x = phen_data_0_1$gs_temp_z, y = predict(out)), size = 1.25, alpha = 0.5) +
+    geom_smooth(method="lm") +
     theme_bw() +
     facet_wrap(~ Year, scales = "free") +
     theme(axis.text.x = element_text(size = 12, angle = 45, vjust = 1, hjust = 1),
