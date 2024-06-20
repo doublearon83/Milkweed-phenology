@@ -1,5 +1,7 @@
 ####extracting meteorological data from NOAA
 
+status_intensity_observation <- read.csv("status_intensity_observation_data.csv", header = TRUE)
+
 #Creating plant_data_id
 plant_id <- unique(status_intensity_observation$Individual_ID)
 latitude <- status_intensity_observation$Latitude[match(plant_id,status_intensity_observation$Individual_ID)]
@@ -30,6 +32,8 @@ stat_plant <- stations2
 
 #Saving Dataframe stations
 write.csv(stat_plant, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-phenology/stat_plant_csv', row.names = FALSE)
+
+
 
 #####################################################
 #####################################################
