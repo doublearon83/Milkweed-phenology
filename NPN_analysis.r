@@ -40,10 +40,6 @@ phen_data_0_1$Year_s <- phen_data_0_1$Year-(min(phen_data_0_1$Year)+1)
 phen_data_0_1$Elevation_s <- scale(phen_data_0_1$Elevation_in_Meters)
 
 
-#remove some unnecessary variables
-phen_data_0_1 <- subset(phen_data_0_1, select = -c(Intensity_Category_ID,Intensity_Value,
-                                                   Abundance_Value,Update_Datetime))
-
 #remove 2010 data (too few)
 phen_data_0_1 <- dplyr::filter(phen_data_0_1,Year>2010)
  
@@ -65,13 +61,20 @@ summary(out)
 Anova(out)
 
 
+out <- lmer(Day_of_Year ~ Latitude*Phenophase_Description + Longitude*Phenophase_Description + Elevation_s*Phenophase_Description +
+              Phenophase_Description*Year_s + Phenophase_Description*gs_temp_z + Phenophase_Description*gs_precip_z +
+              (1|Individual_ID), data=phen_data_0_1)
+summary(out)
+Anova(out)
+
+
 
 #load ggplot2 before making plot
 require(ggplot2)
 
 (LG_plot <- ggplot(phen_data_0_1, aes(x = gs_temp_z, y = Day_of_Year)) +
     geom_point(size = 3, color = "blue") +
-    geom_smooth(method="lm") +
+    geom_line(aes(x = phen_data_0_1$gs_temp_z, y = predict(out)), size = 1.25, alpha = 0.5) +
     theme_bw() +
     facet_wrap(~ Year, scales = "free") +
     theme(axis.text.x = element_text(size = 12, angle = 45, vjust = 1, hjust = 1),
@@ -81,6 +84,28 @@ require(ggplot2)
           plot.margin = unit(c(1,1,1,1), units = , "cm"))
 )
 
+###################################################################################
+############ Possible Code for GGplot Without Missing Values #####################
+#find the indices for the rows with missing values 
+missing_rows <- which(is.na(phen_data_0_1$gs_temp_z) | is.na(phen_data_0_1$Day_of_Year))
+#make new dataframe with the filtered out rows with missing values
+filtered_df <- phen_data_0_1[-missing_rows, ]
+
+filtered_df$pred <- 295+-12.0356*filtered_df$gs_temp_z+-0.9255*filtered_df$Year_s
+
+  
+#run the ggplot
+(LG_plot_ <- ggplot(filtered_df, aes(x = gs_temp_z, y = Day_of_Year)) +
+  geom_point(size = 3, color = "blue") +
+  geom_line(aes(y = pred), size = 1.25, alpha = 0.5) +
+  theme_bw() +
+  facet_wrap(~ Year, scales = "free") +
+  theme(axis.text.x = element_text(size = 12, angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 12, face = "plain"),                        
+        panel.grid = element_blank(),                                                 
+        plot.margin = unit(c(1,1,1,1), units = "cm")))
+################################################################################
 
 
 #just open flowers
