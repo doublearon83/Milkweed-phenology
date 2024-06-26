@@ -56,18 +56,13 @@ HerbariumData_test <- HerbariumData_nona[1:3, ]
 # Initialize an empty list to store results
 final_results_df <- data.frame()
 
-# Iterate through each row in the dataset
-for(i in 1:nrow(HerbariumData_test)) {
-  # Extract the plant_id, latitude, longitude, and year
-  plant_id <- HerbariumData_nona$Identification[i]
-  latitude <- HerbariumData_nona$Latitude[i]
-  longitude <- HerbariumData_nona$Longitude[i]
-  
+# Create a temporary data frame to follow meteo_nearby_stations function format (necessary!)
+temp_df <- HerbariumData_nona %>%
+  dplyr::select(Identification, Latitude, Longitude) %>%
+  dplyr::rename(plant_id = Identification, latitude = Latitude, longitude = Longitude)
+
   # Iterate through each year
   for(Year in 2020:2022) {
-    # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
-    temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
-    
     # Call the function
     stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       lat_colname = "latitude",
@@ -76,6 +71,7 @@ for(i in 1:nrow(HerbariumData_test)) {
                                       year_min = Year,
                                       year_max = Year,
                                       limit = 1)
+        
     #attempt to append the data
     new_row <- data.frame(PlantID = plant_id, 
                           Latitude = latitude, 
