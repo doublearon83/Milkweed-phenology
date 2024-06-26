@@ -87,7 +87,9 @@ for(i in 1:nrow(HerbariumData_test)) {
   }
 }
 
-################ code for vectorization ###################################
+################ code for vectorization ?###################################
+#####not sure if this is the most consolidated/ effective way to use the lapply function#####
+
 # Define the range of years
 years <- seq(2020, 2022)
 
