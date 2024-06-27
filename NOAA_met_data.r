@@ -53,18 +53,18 @@ HerbariumData_nona <- HerbariumData[-missing_rows, ]
 ######## TO TEST LOOP ###############
 HerbariumData_test <- HerbariumData_nona[1:3, ]
 
-# Initialize an empty list to store results
+# Initialize an empty data frame
 final_results_df <- data.frame()
 
-# Iterate through each row in the dataset 
-for(i in 1:nrow(HerbariumData_test)) {
-  # Extract the plant_id, latitude, longitude, and year
+# Iterate through each plant(row)
+for (i in 1:nrow(HerbariumData_test)) {
+  # Extract the plant_id, latitude, longitude
   plant_id <- HerbariumData_nona$Identification[i]
   latitude <- HerbariumData_nona$Latitude[i]
   longitude <- HerbariumData_nona$Longitude[i]
   
   # Iterate through each year
-  for(Year in 2020:2022) {
+  for (Year in 2020:2022) {
     # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
     temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
     
@@ -75,63 +75,64 @@ for(i in 1:nrow(HerbariumData_test)) {
                                       var = "TMAX",
                                       year_min = Year,
                                       year_max = Year,
-                                      limit = 1)
-        
-    #attempt to append the data
+                                      limit = 1)  
+    
+    # Extract the station name from the first station in the list
+    station_info <- stations[[1]]
+    station_name <- station_info$name[1]
+    station_distance <- station_info$distance[1]
+    
+    # Create a new row for the results
     new_row <- data.frame(PlantID = plant_id, 
                           Latitude = latitude, 
                           Longitude = longitude, 
                           Year = Year, 
-                          StationName = stations$name)
+                          StationName = station_name,
+                          Distance = station_distance)
+    
+    # Append data
     final_results_df <- rbind(final_results_df, new_row)
   }
 }
 
+
 ################ code for vectorization ?###################################
-#####not sure if this is the most consolidated/ effective way to use the lapply function#####
 
-# Define the range of years
-years <- seq(2020, 2022)
-
-# Function to extract relevant information from a row
-extract_info <- function(i) {
+final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_nona), function(i) {
+  # Extract the plant_id, latitude, longitude
   plant_id <- HerbariumData_nona$Identification[i]
   latitude <- HerbariumData_nona$Latitude[i]
   longitude <- HerbariumData_nona$Longitude[i]
-  return(data.frame(PlantID = plant_id, Latitude = latitude, Longitude = longitude))
-}
-
-# Iterate through each year and each row
-met_data <- lapply(years, function(year) {
-  # Extract plant_id, latitude, longitude for each row
-  info_list <- lapply(1:nrow(HerbariumData_test), extract_info)
   
-  # Apply the meteo_nearby_stations function for each set of coordinates
-  stations_list <- lapply(info_list, function(info) {
-    temp_df <- data.frame(id = info$PlantID, latitude = info$Latitude, longitude = info$Longitude)
+  # Apply a function to handle the inner loop 
+  lapply(seq(2020, 2022), function(Year) {
+    # Create a temporary data frame to follow meteo_nearby_stations function format
+    temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
+    
+    # Call the function
     stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       lat_colname = "latitude",
                                       lon_colname = "longitude",
                                       var = "TMAX",
-                                      year_min = year,
-                                      year_max = year,
-                                      limit = 1)
+                                      year_min = Year,
+                                      year_max = Year,
+                                      limit = 1)  
     
-
+    # Extract the station name from the first station in the list
+    station_info <- stations[[1]]
+    station_name <- station_info$name[1]
+    station_distance <- station_info$distance[1]
     
-    data.frame(PlantID = info$PlantID,
-               Latitude = info$Latitude,
-               Longitude = info$Longitude,
-               Year = year,
-               StationName = stations$name)
+    # Return a data frame for each year
+    return(data.frame(PlantID = plant_id, 
+                      Latitude = latitude, 
+                      Longitude = longitude, 
+                      Year = Year, 
+                      StationName = station_name,
+                      Distance = station_distance))
   })
-  
-  # Combine the results for the current year into a single data frame
-  bind_rows(stations_list)
-})
+}))
 
-# Combine results from all years into a single data frame
-final_results_df <- bind_rows(met_data)
 
 #####################################################
 #####################################################
