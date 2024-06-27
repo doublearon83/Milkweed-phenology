@@ -1,5 +1,7 @@
 ####extracting meteorological data from NOAA
 
+status_intensity_observation <- read.csv("status_intensity_observation_data.csv", header = TRUE)
+
 #Creating plant_data_id
 plant_id <- unique(status_intensity_observation$Individual_ID)
 latitude <- status_intensity_observation$Latitude[match(plant_id,status_intensity_observation$Individual_ID)]
@@ -30,6 +32,60 @@ stat_plant <- stations2
 
 #Saving Dataframe stations
 write.csv(stat_plant, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-phenology/stat_plant_csv', row.names = FALSE)
+
+################################################################
+# code for looping through each plant by year in Herbarium Data
+#Herbarium Data
+library(googlesheets4)
+gs4_deauth()
+HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_sx9veANUHr0jn4caxJzPPwRhRyDKLGFo/edit#gid=0")
+
+#packages
+library(dplyr)
+library(tidyr)
+
+#create a subset of HerbariumData that does not have na
+#find the indices for the rows with missing values 
+missing_rows <- which(is.na(HerbariumData$Year) | is.na(HerbariumData$Latitude) | is.na(HerbariumData$Longitude))
+#make new dataframe with the filtered out rows with missing values
+HerbariumData_nona <- HerbariumData[-missing_rows, ]
+
+######## TO TEST LOOP ###############
+HerbariumData_test <- HerbariumData_nona[1:3, ]
+
+# Initialize an empty list to store results
+final_results_df <- data.frame()
+
+# Iterate through each row in the dataset
+for(i in 1:nrow(HerbariumData_test)) {
+  # Extract the plant_id, latitude, longitude, and year
+  plant_id <- HerbariumData_nona$Identification[i]
+  latitude <- HerbariumData_nona$Latitude[i]
+  longitude <- HerbariumData_nona$Longitude[i]
+  
+  # Iterate through each year
+  for(Year in 2020:2022) {
+    # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
+    temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
+    
+    # Call the function
+    stations <- meteo_nearby_stations(lat_lon_df = temp_df,
+                                      lat_colname = "latitude",
+                                      lon_colname = "longitude",
+                                      var = "TMAX",
+                                      year_min = Year,
+                                      year_max = Year,
+                                      limit = 1)
+    #attempt to append the data
+    new_row <- data.frame(PlantID = plant_id, 
+                          Latitude = latitude, 
+                          Longitude = longitude, 
+                          Year = Year, 
+                          StationName = stations$name)
+    final_results_df <- rbind(final_results_df, new_row)
+  }
+}
+
 
 #####################################################
 #####################################################

@@ -29,7 +29,6 @@ HerbariumData %>%
          collection_date = as.Date(paste(Year, Month, Day, sep = "-")),
          julian_date = yday(collection_date),
          Latitude = as.numeric(Latitude))
-#sum(is.null(HerbariumData$Latitude))
 
 names(HerbariumData_test)[3]<- "Phenophase_detail"
 
