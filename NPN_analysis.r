@@ -71,7 +71,7 @@ require(ggplot2)
 
 (LG_plot <- ggplot(phen_data_0_1, aes(x = gs_temp_z, y = Day_of_Year)) +
     geom_point(size = 3, color = "blue") +
-    geom_smooth(method="lm") +
+    geom_smooth(method="glm") +
     theme_bw() +
     facet_wrap(~ Year, scales = "free") +
     theme(axis.text.x = element_text(size = 12, angle = 45, vjust = 1, hjust = 1),
