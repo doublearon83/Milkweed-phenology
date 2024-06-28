@@ -98,14 +98,18 @@ for (i in 1:nrow(HerbariumData_test)) {
 
 ################ code for vectorization ?###################################
 
-final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_nona), function(i) {
+# Define the years you are interested in
+years <- 2020:2022
+
+# Create the final results data frame by using lapply
+final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_test), function(i) {
   # Extract the plant_id, latitude, longitude
   plant_id <- HerbariumData_nona$Identification[i]
   latitude <- HerbariumData_nona$Latitude[i]
   longitude <- HerbariumData_nona$Longitude[i]
   
-  # Apply a function to handle the inner loop 
-  lapply(seq(2020, 2022), function(Year) {
+  # Collect results for each year
+  year_results <- lapply(years, function(Year) {
     # Create a temporary data frame to follow meteo_nearby_stations function format
     temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
     
@@ -118,7 +122,7 @@ final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_nona), function(i
                                       year_max = Year,
                                       limit = 1)  
     
-    # Extract the station name from the first station in the list
+    # Extract values
     station_info <- stations[[1]]
     station_name <- station_info$name[1]
     station_distance <- station_info$distance[1]
@@ -131,7 +135,11 @@ final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_nona), function(i
                       StationName = station_name,
                       Distance = station_distance))
   })
+  
+  # Append data 
+  do.call(rbind, year_results)
 }))
+
 
 
 #####################################################
