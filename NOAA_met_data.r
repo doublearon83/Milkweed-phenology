@@ -43,6 +43,7 @@ HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_
 #packages
 library(dplyr)
 library(tidyr)
+library(rnoaa)
 
 #create a subset of HerbariumData that does not have na
 #find the indices for the rows with missing values 
@@ -53,18 +54,28 @@ HerbariumData_nona <- HerbariumData[-missing_rows, ]
 ######## TO TEST LOOP ###############
 HerbariumData_test <- HerbariumData_nona[1:3, ]
 
+  
 # Initialize an empty data frame
 final_results_df <- data.frame()
 
+system.time(
 # Iterate through each plant(row)
 for (i in 1:nrow(HerbariumData_test)) {
   # Extract the plant_id, latitude, longitude
   plant_id <- HerbariumData_nona$Identification[i]
   latitude <- HerbariumData_nona$Latitude[i]
   longitude <- HerbariumData_nona$Longitude[i]
+  year <- HerbariumData_nona$Year[i]
+
+  
+input_data <- HerbariumData_nona %>%
+    select(Identification, Latitude, Longitude, Year)%>%
+    rename(plant_id = Identification, latitude = Latitude, longitude = Longitude, year = Year)
   
   # Iterate through each year
-  for (Year in 2020:2022) {
+  for (Year in 2001:2004) {
+    
+    if (year!=Year) {next} else {
     # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
     temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
     
@@ -92,15 +103,74 @@ for (i in 1:nrow(HerbariumData_test)) {
     
     # Append data
     final_results_df <- rbind(final_results_df, new_row)
+    }
   }
+})
+
+################ code for vectorization ###################################
+
+# Step 1: Create dataset for the input
+input_data <- 
+  HerbariumData_nona %>%
+  select(Identification, Latitude, Longitude, Year)
+
+# Step 2: Function to subset data without year
+noyear_data <- function(input_data) {
+  input_data %>%
+  select(-Year)
 }
 
 
-################ code for vectorization ?###################################
+# Step 3: Function to fetch meteo data for a specific year
+meteo_funct <- function(input_data, Year) {
+  # temporary df
+  subset_df <- noyear_data(input_data)
+  
+  # Call meteo_nearby_stations function 
+  stations <- meteo_nearby_stations(
+    lat_lon_df = subset_df,
+    lat_colname = "Latitude",
+    lon_colname = "Longitude",
+    var = "TMAX", 
+    year_min = Year,
+    year_max = Year,
+    limit = 1
+  )
+  
+  station_info <- stations[[1]]
+  station_name <- station_info$name[1]
+  station_distance <- station_info$distance[1]
+  
+  data.frame(
+    PlantID = year_data$Identification,
+    Latitude = year_data$Latitude,
+    Longitude = year_data$Longitude,
+    Year = year_data$Year,
+    StationName = station_name,
+    Distance = station_distance
+  )
+}
 
-# Define the years you are interested in
+# Step 4: Apply meteo_funct using lapply
+meteo_results <- lapply(HerbariumData_nona,meteo_funct,1)
+
+final_results_df <- do.call(rbind, meteo_results)
+
+
+
+
+
+
+
+
+
+
+
+
+# Define the years interested in
 years <- 2020:2022
 
+system.time(
 # Create the final results data frame by using lapply
 final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_test), function(i) {
   # Extract the plant_id, latitude, longitude
@@ -139,8 +209,9 @@ final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_test), function(i
   # Append data 
   do.call(rbind, year_results)
 }))
+)
 
-
+lapply(herbariumData,meteo_funct,1)
 
 #####################################################
 #####################################################
