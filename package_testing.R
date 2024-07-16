@@ -1,10 +1,5 @@
-#pglmm in phyr
-library(phyr)
-
 #pglmm() in phyr
 library(phyr)
-library(ape)
-phy.sp <- read.tree(path to tree)
 pglmm_model <- pglmm(
   Day_of_Year ~ Latitude * Phenophase_Description + 
     Longitude * Phenophase_Description + 
@@ -12,12 +7,9 @@ pglmm_model <- pglmm(
     Phenophase_Description * Year_s + 
     Phenophase_Description * gs_temp_z + 
     Phenophase_Description * gs_precip_z + 
-    (1 | sp__) + # Random intercept for species. This captures the species-specific variability.
-    (1 | site), #Random intercept for sites, if you have site information. If not, we can get rid of this
+    (1 | site),   # Random intercept for sites,
   data = phen_data_0_1,
-  cov_ranef = list(sp = phy.sp),
-  family = poisson
-  bayes = TRUE #Uses Bayesian estimation
+  family = "poisson" #generalized linear mixed models
 )
 
 # Predict the Day_of_Year
