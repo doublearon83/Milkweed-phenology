@@ -51,8 +51,8 @@ missing_rows <- which(is.na(HerbariumData$Year) | is.na(HerbariumData$Latitude) 
 #make new dataframe with the filtered out rows with missing values
 HerbariumData_nona <- HerbariumData[-missing_rows, ]
 
-######## TO TEST LOOP ###############
-HerbariumData_test <- HerbariumData_nona[4:6, ]
+######## batch running ###############
+HerbariumData_test <- HerbariumData_nona[1:584, ]
 
   
 # Initialize an empty data frame
@@ -70,12 +70,8 @@ for (i in 1:nrow(HerbariumData_test)) {
   # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
   temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
 
-# input_data <- HerbariumData_nona %>%
-#     select(Identification, Latitude, Longitude, Year)%>%
-#     rename(plant_id = Identification, latitude = Latitude, longitude = Longitude, year = Year)
-
   # Iterate through each year
-  for (Year in 2001:2005) {
+  for (Year in 1839:2021) {
     
     if (year!=Year) {next} else {
 
@@ -106,6 +102,69 @@ for (i in 1:nrow(HerbariumData_test)) {
     }
   }
 })
+write.csv(final_results_df, file = '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations', row.names = FALSE)
+
+
+
+
+#check for duplicates
+duplicates <- final_results_df[duplicated(final_results_df), ]
+print(duplicates)
+
+###############################################################
+########### Batch Running Code
+# Initialize ONCE, 
+#batch_results_df <- data.frame()
+
+#start with row 587 for next batch
+# Define the range of rows 
+start_row <- 9
+end_row <- 586
+
+system.time({
+  # Iterate through the specified range of rows
+  for (i in start_row:end_row) {
+    # Extract the plant_id, latitude, longitude, and year
+    plant_id <- HerbariumData_nona$Identification[i]
+    latitude <- HerbariumData_nona$Latitude[i]
+    longitude <- HerbariumData_nona$Longitude[i]
+    year <- HerbariumData_nona$Year[i]
+    
+    # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
+    temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
+    
+    # Call the function for the specific year
+    stations <- meteo_nearby_stations(lat_lon_df = temp_df,
+                                      lat_colname = "latitude",
+                                      lon_colname = "longitude",
+                                      var = "TMAX",
+                                      year_min = year,
+                                      year_max = year,
+                                      limit = 1)
+    
+    # Extract the station name and distance from the first station in the list
+    station_info <- stations[[1]]
+    station_name <- station_info$name[1]
+    station_distance <- station_info$distance[1]
+    
+    # Create a new row for the results
+    new_row <- data.frame(PlantID = plant_id,
+                          Latitude = latitude,
+                          Longitude = longitude,
+                          Year = year,
+                          StationName = station_name,
+                          Distance = station_distance)
+    
+    # Append data to the batch data frame
+    batch_results_df <- rbind(batch_results_df, new_row)
+  }
+})
+
+# Save the batch results to an existing CSV file with append mode
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations_test.csv'
+write.csv(batch_results_df, file = output_file, row.names = FALSE)
+
+
 
 ################ code for vectorization ###################################
 
