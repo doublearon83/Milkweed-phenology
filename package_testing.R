@@ -1,4 +1,8 @@
-#pglmm() in phyr
+#elastic net
+library(elasticnet)
+library(lars)
+
+#pglmm() in phyr -- NOT USING
 library(phyr)
 pglmm_model <- pglmm(
   Day_of_Year ~ Latitude * Phenophase_Description + 
@@ -45,7 +49,44 @@ library(rchelsa)
 ls("package:rchelsa")
 
 #Download data
-get_chelsea_data(categ = "clim", type = "bio", id = 1, path = "Users/sarah/Desktop/Milkweed/Data")
+get_chelsea_data(categ = "clim", type = "bio", id = 1, path = ".") #downloads a tif file
+#mean annual air temperature in celcius
+
+#load/ read in a tif file
+library(raster)
+library(sp)
+library(sf)
+tif_file <- raster("C:/Users/sarah/Desktop/CHELSA_bio10_01.tif")
+print(tif_file)
+plot(tif_file)
+attributes(tif_file)
+
+lat_long_ <- HerbariumData_nona[, c(13,14)]
+coordinates(lat_long_) <- ~Longitude + Latitude
+
+# Extract raster values
+extracted_values <- extract(tif_file, lat_long_)
+lat_long_$Temperature <- extracted_values
+
+print(lat_long_)
+
+# Convert to sf object (for more modern spatial handling)
+lat_long_sf <- st_as_sf(lat_long_, coords = c("longitude", "latitude"), crs = crs(tif_file))
+
+# Extract values
+extracted_values_sf <- extract(tif_file, lat_long_sf)
+lat_long_sf$Temperature <- extracted_values_sf
+
+print(lat_long_sf)
+
+
+
+
+
+
+
+
+
 
 
 

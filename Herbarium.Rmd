@@ -41,6 +41,18 @@ model_fl <- lm(julian_date ~ Phenophase_detail + Latitude + Longitude + Year, da
 Anova(model_fl)
 
 ```
+Compare to weibull distribution
+
+```{r}
+library(VGAM)
+weibull_model_fl <- vglm(julian_date ~ Phenophase_detail + Latitude + Longitude + Year,
+                      family = weibullR, data = HerbariumData_fl)
+print(weibull_model_fl)
+#find p values
+Anova(weibull_model_fl)
+
+```
+
 
 ```{r}
 #mean julian date by phenophase detail and year

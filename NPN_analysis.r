@@ -67,6 +67,15 @@ out <- lmer(Day_of_Year ~ Latitude*Phenophase_Description + Longitude*Phenophase
 summary(out)
 Anova(out)
 
+###### weibull distribution #############
+weibull_model_phen <- vglm(Day_of_Year ~ Latitude * Phenophase_Description + Longitude * Phenophase_Description + 
+                        Elevation_s * Phenophase_Description + Phenophase_Description * Year_s + 
+                        Phenophase_Description * gs_temp_z + Phenophase_Description * gs_precip_z,
+                      family = weibullR, data = phen_data_0_1)
+summary(weibull_model_phen)
+Anova(weibull_model_phen)
+
+
 
 
 #load ggplot2 before making plot
