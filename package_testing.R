@@ -50,12 +50,20 @@ ls("package:rchelsa")
 
 #Download data
 get_chelsea_data(categ = "clim", type = "bio", id = 1, path = ".") #downloads a tif file
-#mean annual air temperature in celcius
+#mean annual air temperature in celcius (0.1)
 
-#load/ read in a tif file
-library(raster)
-library(sp)
-library(sf)
+
+# To load and process GIS data
+require(sp)
+require(rgdal)
+require(raster)
+require(ncdf4)
+require(sf)
+#To make nicer looking maps
+require(maps) 
+require(mapdata)
+require(RColorBrewer)
+
 tif_file <- raster("C:/Users/sarah/Desktop/CHELSA_bio10_01.tif")
 print(tif_file)
 plot(tif_file)
@@ -70,7 +78,7 @@ lat_long_$Temperature <- extracted_values
 
 print(lat_long_)
 
-# Convert to sf object (for more modern spatial handling)
+# Convert to sf object 
 lat_long_sf <- st_as_sf(lat_long_, coords = c("longitude", "latitude"), crs = crs(tif_file))
 
 # Extract values
@@ -80,12 +88,43 @@ lat_long_sf$Temperature <- extracted_values_sf
 print(lat_long_sf)
 
 
+### The sp package
+tif_file <- raster("C:/Users/sarah/Desktop/CHELSA_bio10_01.tif")
+#spatial points
+lonlat <- HerbariumData_nona[, c(13,14)]
+pts <- SpatialPoints(lonlat)
+class (pts)
+showDefault(pts) #shows whats inside of pts
+#no CRS so can provide one to the object 
+crdref <- CRS('+proj=longlat +datum=WGS84')
+pts <- SpatialPoints(lonlat, proj4string=crdref)
+#We can use the SpatialPoints object to create a SpatialPointsDataFrame object
+tempvalue <- runif(nrow(lonlat), min=0, max=100)
+df <- data.frame(ID=1:nrow(lonlat), temp=tempvalue)
+df
+#Combine the SpatialPoints with the data.frame
+ptsdf <- SpatialPointsDataFrame(pts, data=df)
+ptsdf
+#show whats inside
+showDefault(ptsdf) 
 
+### The sf package, need a shapefile
 
+## can us raster and sp to download WorldClim data
+library(raster)
+library(sp)
 
+r <- getData("worldclim",var="bio",res=10)
+#Bio 1 and Bio12 are mean anual temperature and anual precipitation:
+  r <- r[[c(1,12)]]
+names(r) <- c("Temp","Prec")
 
+#can create a SpatialPoint object using coordinates
+points <- spsample(as(r@extent, 'SpatialPolygons'),n=100, type="random")    
 
+values <- extract(r,points) #create a df
 
+df <- cbind.data.frame(coordinates(points),values)
 
 
 

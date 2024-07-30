@@ -38,6 +38,7 @@ HerbariumData_fl <-
 
 #run linear regression
 model_fl <- lm(julian_date ~ Phenophase_detail + Latitude + Longitude + Year, data = HerbariumData_fl)
+summary(model_fl)
 Anova(model_fl)
 
 ```

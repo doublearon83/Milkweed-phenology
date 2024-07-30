@@ -51,75 +51,14 @@ missing_rows <- which(is.na(HerbariumData$Year) | is.na(HerbariumData$Latitude) 
 #make new dataframe with the filtered out rows with missing values
 HerbariumData_nona <- HerbariumData[-missing_rows, ]
 
-######## batch running ###############
-HerbariumData_test <- HerbariumData_nona[1:584, ]
-
-  
-# Initialize an empty data frame
-final_results_df <- data.frame()
-
-system.time(
-# Iterate through each plant(row)
-for (i in 1:nrow(HerbariumData_test)) {
-  # Extract the plant_id, latitude, longitude
-  plant_id <- HerbariumData_nona$Identification[i]
-  latitude <- HerbariumData_nona$Latitude[i]
-  longitude <- HerbariumData_nona$Longitude[i]
-  year <- HerbariumData_nona$Year[i]
-
-  # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
-  temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
-
-  # Iterate through each year
-  for (Year in 1839:2021) {
-    
-    if (year!=Year) {next} else {
-
-    # Call the function
-    stations <- meteo_nearby_stations(lat_lon_df = temp_df,
-                                      lat_colname = "latitude",
-                                      lon_colname = "longitude",
-                                      var = "TMAX",
-                                      year_min = Year,
-                                      year_max = Year,
-                                      limit = 1)  
-    
-    # Extract the station name from the first station in the list
-    station_info <- stations[[1]]
-    station_name <- station_info$name[1]
-    station_distance <- station_info$distance[1]
-    
-    # Create a new row for the results
-    new_row <- data.frame(PlantID = plant_id, 
-                          Latitude = latitude, 
-                          Longitude = longitude, 
-                          Year = Year, 
-                          StationName = station_name,
-                          Distance = station_distance)
-    
-    # Append data
-    final_results_df <- rbind(final_results_df, new_row)
-    }
-  }
-})
-write.csv(final_results_df, file = '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations', row.names = FALSE)
-
-
-
-
-#check for duplicates
-duplicates <- final_results_df[duplicated(final_results_df), ]
-print(duplicates)
-
-###############################################################
 ########### Batch Running Code
 # Initialize ONCE, 
 #batch_results_df <- data.frame()
+batch_results_df <- read.csv("nearest_stations.csv")
 
-#start with row 587 for next batch
-# Define the range of rows 
-start_row <- 9
-end_row <- 586
+# Define the range of rows, next start with 611
+start_row <- 611
+end_row <- 623
 
 system.time({
   # Iterate through the specified range of rows
@@ -133,6 +72,9 @@ system.time({
     # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
     temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
     
+    for (Year in 1840:2024) {
+      
+      if (year!=Year) {next} else {   
     # Call the function for the specific year
     stations <- meteo_nearby_stations(lat_lon_df = temp_df,
                                       lat_colname = "latitude",
@@ -140,15 +82,18 @@ system.time({
                                       var = "TMAX",
                                       year_min = year,
                                       year_max = year,
-                                      limit = 1)
+                                      limit = 2)
     
     # Extract the station name and distance from the first station in the list
+    
     station_info <- stations[[1]]
     station_name <- station_info$name[1]
     station_distance <- station_info$distance[1]
+    station_id <- station_info$id[1]
     
     # Create a new row for the results
-    new_row <- data.frame(PlantID = plant_id,
+    new_row <- data.frame(id = station_id,
+                          PlantID = plant_id,
                           Latitude = latitude,
                           Longitude = longitude,
                           Year = year,
@@ -157,11 +102,12 @@ system.time({
     
     # Append data to the batch data frame
     batch_results_df <- rbind(batch_results_df, new_row)
+      }}  
   }
 })
 
-# Save the batch results to an existing CSV file with append mode
-output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations_test.csv'
+# Save the batch results to an existing CSV file
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations.csv'
 write.csv(batch_results_df, file = output_file, row.names = FALSE)
 
 
@@ -221,52 +167,6 @@ final_results_df <- do.call(rbind, meteo_results)
 
 ###############################################################
 
-# Define the years interested in
-years <- 2020:2022
-
-system.time(
-# Create the final results data frame by using lapply
-final_results_df <- do.call(rbind, lapply(1:nrow(HerbariumData_test), function(i) {
-  # Extract the plant_id, latitude, longitude
-  plant_id <- HerbariumData_nona$Identification[i]
-  latitude <- HerbariumData_nona$Latitude[i]
-  longitude <- HerbariumData_nona$Longitude[i]
-  
-  # Collect results for each year
-  year_results <- lapply(years, function(Year) {
-    # Create a temporary data frame to follow meteo_nearby_stations function format
-    temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
-    
-    # Call the function
-    stations <- meteo_nearby_stations(lat_lon_df = temp_df,
-                                      lat_colname = "latitude",
-                                      lon_colname = "longitude",
-                                      var = "TMAX",
-                                      year_min = Year,
-                                      year_max = Year,
-                                      limit = 1)  
-    
-    # Extract values
-    station_info <- stations[[1]]
-    station_name <- station_info$name[1]
-    station_distance <- station_info$distance[1]
-    
-    # Return a data frame for each year
-    return(data.frame(PlantID = plant_id, 
-                      Latitude = latitude, 
-                      Longitude = longitude, 
-                      Year = Year, 
-                      StationName = station_name,
-                      Distance = station_distance))
-  })
-  
-  # Append data 
-  do.call(rbind, year_results)
-}))
-)
-
-lapply(herbariumData,meteo_funct,1)
-
 #####################################################
 #####################################################
 #uploading stations data
@@ -279,6 +179,7 @@ stat_plant <- read.csv("stat_plant", header = TRUE)
 ######DO NOT RUN UNLESS UPDATING Met data############
 #####################################################
 # pull meteorological data (march - november growing season) for stations by date
+
 years <- seq(2016, 2022)
 met_data <- lapply(years, function(years) {
   meteo_pull_monitors(unique(stations2$id),
@@ -290,6 +191,56 @@ met_data <- lapply(years, function(years) {
 #Saving Dataframe met data
 
 write.csv(met_data, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-phenology/met_data_csv', row.names = FALSE)
+
+
+############pull met using a loop ##################
+# Initialize ONCE, 
+#met_df <- data.frame()
+met_df <- read.csv("met_data.csv")
+stations2 <- read.csv("nearest_stations.csv")
+
+start_row <- 1
+end_row <- 5
+
+system.time({
+  # Iterate through the specified range of rows
+  for (i in start_row:end_row) {
+
+    station_id <- stations2$id[i]
+    year <- stations2$Year[i]
+    
+    for (Year in 1840:2024) {
+      
+      if (year!=Year) {next} else {   
+    
+        met_data <- meteo_pull_monitors(unique(station_id),
+                            date_min = paste0(Year, "-03-01"),
+                            date_max = paste0(Year, "-11-30"),
+                            var = c("TMAX", "PRCP"))
+        
+        id <- met_data$id 
+        date <- met_data$date
+        prcp <- met_data$prcp
+        tmax <- met_data$tmax
+        plantid <- rep(stations2$PlantID[i],length(id))
+
+        # Create a new row for the results
+        new_r <- data.frame(id = id,
+                            date = date,
+                            prcp = prcp,
+                            tmax = tmax,
+                            Year = Year)
+        
+        # Append data to the batch data frame
+        met_df <- rbind(met_df, new_r)
+      }}
+  }
+})
+
+# Save the batch results to an existing CSV file
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data.csv'
+write.csv(met_df, file = output_file, row.names = FALSE)
+
 
 
 ######################################################
