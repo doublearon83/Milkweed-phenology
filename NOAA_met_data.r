@@ -56,9 +56,9 @@ HerbariumData_nona <- HerbariumData[-missing_rows, ]
 #batch_results_df <- data.frame()
 batch_results_df <- read.csv("nearest_stations.csv")
 
-# Define the range of rows, next start with 611
-start_row <- 611
-end_row <- 623
+# Define the range of rows, next start with 
+start_row <- 637
+end_row <- 638
 
 system.time({
   # Iterate through the specified range of rows
@@ -109,7 +109,7 @@ system.time({
 # Save the batch results to an existing CSV file
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations.csv'
 write.csv(batch_results_df, file = output_file, row.names = FALSE)
-
+#####################################################
 
 
 ################ code for vectorization ###################################
@@ -199,8 +199,8 @@ write.csv(met_data, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-pheno
 met_df <- read.csv("met_data.csv")
 stations2 <- read.csv("nearest_stations.csv")
 
-start_row <- 1
-end_row <- 5
+start_row <- 2
+end_row <- 639
 
 system.time({
   # Iterate through the specified range of rows
@@ -229,7 +229,8 @@ system.time({
                             date = date,
                             prcp = prcp,
                             tmax = tmax,
-                            Year = Year)
+                            Year = Year,
+                            plantid = plantid)
         
         # Append data to the batch data frame
         met_df <- rbind(met_df, new_r)
@@ -241,9 +242,74 @@ system.time({
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data.csv'
 write.csv(met_df, file = output_file, row.names = FALSE)
 
+##################################################
+#To find a second station if the first has NA
+na_subset <- met_df %>%
+  filter(is.na(prcp) | is.na(tmax)) %>%
+  select(plantid) %>%
+  left_join(HerbariumData_nona)
 
+# Initialize ONCE, 
+#na_df <- data.frame()
+na_df <- read.csv("nearest_stations2.csv")
 
-######################################################
+# Define the range of rows, next start with 
+start_row <- 2
+end_row <- 637
+
+system.time({
+  # Iterate through the specified range of rows
+  for (i in start_row:end_row) {
+    # Extract the plant_id, latitude, longitude, and year
+    plant_id <- na_subset$Identification[i]
+    latitude <- na_subset$Latitude[i]
+    longitude <- na_subset$Longitude[i]
+    year <- na_subset$Year[i]
+    
+    # Create a temporary data frame to follow mete_nearby_stations function format (necessary!)
+    temp_df <- data.frame(id = plant_id, latitude = latitude, longitude = longitude)
+    
+    for (Year in 1840:2024) {
+      
+      if (year!=Year) {next} else {   
+        # Call the function for the specific year
+        stations <- meteo_nearby_stations(lat_lon_df = temp_df,
+                                          lat_colname = "latitude",
+                                          lon_colname = "longitude",
+                                          var = "TMAX",
+                                          year_min = year,
+                                          year_max = year,
+                                          limit = 2)
+        
+        # Extract the station name and distance from the first station in the list
+        
+        station_info <- stations[[2]]
+        station_name <- station_info$name[2]
+        station_distance <- station_info$distance[2]
+        station_id <- station_info$id[2]
+        
+        # Create a new row for the results
+        new_row <- data.frame(id = station_id,
+                              PlantID = plant_id,
+                              Latitude = latitude,
+                              Longitude = longitude,
+                              Year = year,
+                              StationName = station_name,
+                              Distance = station_distance)
+        
+        # Append data to the batch data frame
+        na_df <- rbind(na_df, new_row)
+      }}  
+  }
+})
+
+# Save the batch results to an existing CSV file
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations2.csv'
+write.csv(batch_results_df, file = output_file, row.names = FALSE)
+
+###find the met data
+
+#####################################################
 ######################################################
 
 #uploading stations data
