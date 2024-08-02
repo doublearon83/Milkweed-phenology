@@ -51,12 +51,12 @@ missing_rows <- which(is.na(HerbariumData$Year) | is.na(HerbariumData$Latitude) 
 #make new dataframe with the filtered out rows with missing values
 HerbariumData_nona <- HerbariumData[-missing_rows, ]
 
-########### Batch Running Code
+########### Batch Running Code to find nearest stations
 # Initialize ONCE, 
 #batch_results_df <- data.frame()
 batch_results_df <- read.csv("nearest_stations.csv")
 
-# Define the range of rows, next start with 
+# Define the range of rows, next start with 639
 start_row <- 637
 end_row <- 638
 
@@ -199,8 +199,8 @@ write.csv(met_data, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-pheno
 met_df <- read.csv("met_data.csv")
 stations2 <- read.csv("nearest_stations.csv")
 
-start_row <- 2
-end_row <- 639
+start_row <- 1
+end_row <- 638
 
 system.time({
   # Iterate through the specified range of rows
@@ -244,10 +244,12 @@ write.csv(met_df, file = output_file, row.names = FALSE)
 
 ##################################################
 #To find a second station if the first has NA
+#create a subset
 na_subset <- met_df %>%
   filter(is.na(prcp) | is.na(tmax)) %>%
   select(plantid) %>%
-  left_join(HerbariumData_nona)
+  distinct() %>%
+  left_join(HerbariumData_nona, by = join_by(plantid == Identification))
 
 # Initialize ONCE, 
 #na_df <- data.frame()
@@ -307,7 +309,58 @@ system.time({
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations2.csv'
 write.csv(batch_results_df, file = output_file, row.names = FALSE)
 
-###find the met data
+###find the met data####
+
+# Initialize ONCE, 
+#met_df2 <- data.frame()
+met_df2 <- read.csv("met_data2.csv")
+stations3 <- read.csv("nearest_stations2.csv")
+
+start_row <- 
+end_row <- 
+
+system.time({
+  # Iterate through the specified range of rows
+  for (i in start_row:end_row) {
+    
+    station_id <- stations3$id[i]
+    year <- stations3$Year[i]
+    
+    for (Year in 1840:2024) {
+      
+      if (year!=Year) {next} else {   
+        
+        met_data <- meteo_pull_monitors(unique(station_id),
+                                        date_min = paste0(Year, "-03-01"),
+                                        date_max = paste0(Year, "-11-30"),
+                                        var = c("TMAX", "PRCP"))
+        
+        id <- met_data$id 
+        date <- met_data$date
+        prcp <- met_data$prcp
+        tmax <- met_data$tmax
+        plantid <- rep(stations2$PlantID[i],length(id))
+        
+        # Create a new row for the results
+        new_r <- data.frame(id = id,
+                            date = date,
+                            prcp = prcp,
+                            tmax = tmax,
+                            Year = Year,
+                            plantid = plantid)
+        
+        # Append data to the batch data frame
+        met_df2 <- rbind(met_df, new_r)
+      }}
+  }
+})
+
+# Save the batch results to an existing CSV file
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data2.csv'
+write.csv(met_df, file = output_file, row.names = FALSE)
+
+
+#append data ?
 
 #####################################################
 ######################################################
