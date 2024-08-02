@@ -57,8 +57,8 @@ HerbariumData_nona <- HerbariumData[-missing_rows, ]
 batch_results_df <- read.csv("nearest_stations.csv")
 
 # Define the range of rows, next start with 639
-start_row <- 637
-end_row <- 638
+start_row <- 
+end_row <- 
 
 system.time({
   # Iterate through the specified range of rows
@@ -109,63 +109,6 @@ system.time({
 # Save the batch results to an existing CSV file
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations.csv'
 write.csv(batch_results_df, file = output_file, row.names = FALSE)
-#####################################################
-
-
-################ code for vectorization ###################################
-
-# Step 1: Create dataset for the input
-input_data <- 
-  HerbariumData_nona %>%
-  select(Identification, Latitude, Longitude, Year)
-
-names(input_data)[1] <- "id"
-
-# Step 2: Function to subset data without year
-noyear_data <- function(og_data) {
-  og_data %>%
-  select(-Year)
-}
-
-
-# Step 3: Function to fetch meteo data for a specific year
-meteo_funct <- function(og_data) {
-  # temporary df
-  subset_df <- noyear_data(og_data)
-  
-  Year <- og_data$Year
-  
-  # Call meteo_nearby_stations function 
-  stations <- meteo_nearby_stations(
-    lat_lon_df = subset_df,
-    lat_colname = "Latitude",
-    lon_colname = "Longitude",
-    var = "TMAX", 
-    year_min = Year,
-    year_max = Year,
-    limit = 1
-  )
-  
-  station_info <- stations[[1]]
-  station_name <- station_info$name[1]
-  station_distance <- station_info$distance[1]
-  
-  c(
-    PlantID = og_data$id,
-    Latitude = og_data$Latitude,
-    Longitude = og_data$Longitude,
-    Year = og_data$Year,
-    StationName = station_name,
-    Distance = station_distance
-  )
-}
-
-# Step 4: Apply meteo_funct using lapply
-meteo_results <- apply(input_data[1,],1,meteo_funct)
-
-final_results_df <- do.call(rbind, meteo_results)
-
-###############################################################
 
 #####################################################
 #####################################################
@@ -199,8 +142,10 @@ write.csv(met_data, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-pheno
 met_df <- read.csv("met_data.csv")
 stations2 <- read.csv("nearest_stations.csv")
 
-start_row <- 1
-end_row <- 638
+#*specifically an issue with row 7
+
+start_row <- 7
+end_row <- 7
 
 system.time({
   # Iterate through the specified range of rows
@@ -242,8 +187,8 @@ system.time({
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data.csv'
 write.csv(met_df, file = output_file, row.names = FALSE)
 
-##################################################
-#To find a second station if the first has NA
+###########################################################
+#To find a second station if the first has NA values
 #create a subset
 na_subset <- met_df %>%
   filter(is.na(prcp) | is.na(tmax)) %>%
@@ -256,8 +201,8 @@ na_subset <- met_df %>%
 na_df <- read.csv("nearest_stations2.csv")
 
 # Define the range of rows, next start with 
-start_row <- 2
-end_row <- 637
+start_row <- 1
+end_row <- 638
 
 system.time({
   # Iterate through the specified range of rows
@@ -309,15 +254,15 @@ system.time({
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations2.csv'
 write.csv(batch_results_df, file = output_file, row.names = FALSE)
 
-###find the met data####
+###find the met data for second closest station####
 
 # Initialize ONCE, 
 #met_df2 <- data.frame()
 met_df2 <- read.csv("met_data2.csv")
 stations3 <- read.csv("nearest_stations2.csv")
 
-start_row <- 
-end_row <- 
+start_row <- 1
+end_row <- 2
 
 system.time({
   # Iterate through the specified range of rows
@@ -360,7 +305,8 @@ output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/Gi
 write.csv(met_df, file = output_file, row.names = FALSE)
 
 
-#append data ?
+#append data?
+
 
 #####################################################
 ######################################################
@@ -450,3 +396,60 @@ ggplot(merged_temp_flowering, aes(x = mean_precip, y = mean_flowering_time)) +
   geom_point() +
   labs(x = "Mean precipitation", y = "Mean flowering time") +
   theme_bw()
+
+
+################ code for vectorization (not being used) ###################################
+
+# Step 1: Create dataset for the input
+input_data <- 
+  HerbariumData_nona %>%
+  select(Identification, Latitude, Longitude, Year)
+
+names(input_data)[1] <- "id"
+
+# Step 2: Function to subset data without year
+noyear_data <- function(og_data) {
+  og_data %>%
+    select(-Year)
+}
+
+
+# Step 3: Function to fetch meteo data for a specific year
+meteo_funct <- function(og_data) {
+  # temporary df
+  subset_df <- noyear_data(og_data)
+  
+  Year <- og_data$Year
+  
+  # Call meteo_nearby_stations function 
+  stations <- meteo_nearby_stations(
+    lat_lon_df = subset_df,
+    lat_colname = "Latitude",
+    lon_colname = "Longitude",
+    var = "TMAX", 
+    year_min = Year,
+    year_max = Year,
+    limit = 1
+  )
+  
+  station_info <- stations[[1]]
+  station_name <- station_info$name[1]
+  station_distance <- station_info$distance[1]
+  
+  c(
+    PlantID = og_data$id,
+    Latitude = og_data$Latitude,
+    Longitude = og_data$Longitude,
+    Year = og_data$Year,
+    StationName = station_name,
+    Distance = station_distance
+  )
+}
+
+# Step 4: Apply meteo_funct using lapply
+meteo_results <- apply(input_data[1,],1,meteo_funct)
+
+final_results_df <- do.call(rbind, meteo_results)
+
+###############################################################
+
