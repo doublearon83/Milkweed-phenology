@@ -40,6 +40,10 @@ library(googlesheets4)
 gs4_deauth()
 HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_sx9veANUHr0jn4caxJzPPwRhRyDKLGFo/edit#gid=0")
 
+#check duplicates
+HerbariumData[HerbariumData$Identification %in% HerbariumData$Identification[duplicated(HerbariumData$Identification)], ]
+
+
 #packages
 library(dplyr)
 library(tidyr)
@@ -57,8 +61,8 @@ HerbariumData_nona <- HerbariumData[-missing_rows, ]
 batch_results_df <- read.csv("nearest_stations.csv")
 
 # Define the range of rows, next start with 639
-start_row <- 
-end_row <- 
+start_row <- 1
+end_row <- 636
 
 system.time({
   # Iterate through the specified range of rows
@@ -82,7 +86,7 @@ system.time({
                                       var = "TMAX",
                                       year_min = year,
                                       year_max = year,
-                                      limit = 2)
+                                      limit = 1)
     
     # Extract the station name and distance from the first station in the list
     
@@ -142,10 +146,9 @@ write.csv(met_data, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-pheno
 met_df <- read.csv("met_data.csv")
 stations2 <- read.csv("nearest_stations.csv")
 
-#*specifically an issue with row 7
-
-start_row <- 7
-end_row <- 7
+#start with 639 next
+start_row <- 1
+end_row <- 636
 
 system.time({
   # Iterate through the specified range of rows
@@ -163,12 +166,22 @@ system.time({
                             date_max = paste0(Year, "-11-30"),
                             var = c("TMAX", "PRCP"))
         
-        id <- met_data$id 
-        date <- met_data$date
-        prcp <- met_data$prcp
-        tmax <- met_data$tmax
-        plantid <- rep(stations2$PlantID[i],length(id))
-
+        if (nrow(met_data) == 0 | !"tmax" %in% colnames(met_data) |  !"prcp" %in% colnames(met_data)) {
+          id <- stations2$id[i]
+          date <- NA
+          prcp <- NA
+          tmax <- NA
+          plantid <- stations2$PlantID[i]
+        }
+        else {
+          id <- met_data$id 
+          date <- met_data$date
+          prcp <- met_data$prcp
+          tmax <- met_data$tmax
+          plantid <- rep(stations2$PlantID[i],length(id))
+        }
+        
+        
         # Create a new row for the results
         new_r <- data.frame(id = id,
                             date = date,
@@ -194,7 +207,7 @@ na_subset <- met_df %>%
   filter(is.na(prcp) | is.na(tmax)) %>%
   select(plantid) %>%
   distinct() %>%
-  left_join(HerbariumData_nona, by = join_by(plantid == Identification))
+  inner_join(HerbariumData_nona, by = join_by(plantid == Identification))
 
 # Initialize ONCE, 
 #na_df <- data.frame()
@@ -202,13 +215,13 @@ na_df <- read.csv("nearest_stations2.csv")
 
 # Define the range of rows, next start with 
 start_row <- 1
-end_row <- 638
+end_row <- 352
 
 system.time({
   # Iterate through the specified range of rows
   for (i in start_row:end_row) {
     # Extract the plant_id, latitude, longitude, and year
-    plant_id <- na_subset$Identification[i]
+    plant_id <- na_subset$plantid[i]
     latitude <- na_subset$Latitude[i]
     longitude <- na_subset$Longitude[i]
     year <- na_subset$Year[i]
@@ -230,10 +243,10 @@ system.time({
         
         # Extract the station name and distance from the first station in the list
         
-        station_info <- stations[[2]]
-        station_name <- station_info$name[2]
-        station_distance <- station_info$distance[2]
-        station_id <- station_info$id[2]
+        station_info <- stations[[1]][2,]
+        station_name <- station_info$name[1]
+        station_distance <- station_info$distance[1]
+        station_id <- station_info$id[1]
         
         # Create a new row for the results
         new_row <- data.frame(id = station_id,
@@ -252,7 +265,7 @@ system.time({
 
 # Save the batch results to an existing CSV file
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations2.csv'
-write.csv(batch_results_df, file = output_file, row.names = FALSE)
+write.csv(na_df, file = output_file, row.names = FALSE)
 
 ###find the met data for second closest station####
 
@@ -262,7 +275,7 @@ met_df2 <- read.csv("met_data2.csv")
 stations3 <- read.csv("nearest_stations2.csv")
 
 start_row <- 1
-end_row <- 2
+end_row <- 636
 
 system.time({
   # Iterate through the specified range of rows
@@ -280,11 +293,21 @@ system.time({
                                         date_max = paste0(Year, "-11-30"),
                                         var = c("TMAX", "PRCP"))
         
-        id <- met_data$id 
-        date <- met_data$date
-        prcp <- met_data$prcp
-        tmax <- met_data$tmax
-        plantid <- rep(stations2$PlantID[i],length(id))
+        if (nrow(met_data) == 0 | !"tmax" %in% colnames(met_data) |  !"prcp" %in% colnames(met_data)) {
+          id <- stations2$id[i]
+          date <- NA
+          prcp <- NA
+          tmax <- NA
+          plantid <- stations2$PlantID[i]
+        }
+        else {
+          id <- met_data$id 
+          date <- met_data$date
+          prcp <- met_data$prcp
+          tmax <- met_data$tmax
+          plantid <- rep(stations2$PlantID[i],length(id))
+        }
+        
         
         # Create a new row for the results
         new_r <- data.frame(id = id,
@@ -302,10 +325,114 @@ system.time({
 
 # Save the batch results to an existing CSV file
 output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data2.csv'
-write.csv(met_df, file = output_file, row.names = FALSE)
+write.csv(met_df2, file = output_file, row.names = FALSE)
 
 
-#append data?
+#### Dataset to use for analysis ##############
+#distance, station, plant id, tmax, prcp, date, year 
+
+#dataset with stations and their met data
+stations2 <- read.csv("nearest_stations.csv")
+met_df <- read.csv("met_data.csv")
+#minus the na data points, distance, long/lat
+colnames(stations2)[colnames(stations2) == "PlantID"] <- "plantid"
+data1 <- left_join(met_df, stations2 %>% dplyr::select(id, plantid, Distance), by = c("id", "plantid")) %>%
+  filter(!is.na(prcp) | !is.na(tmax))
+
+#dataset with second closest stations and their met data
+stations3 <- read.csv("nearest_stations2.csv")
+met_df2 <- read.csv("met_data2.csv")
+colnames(stations3)[colnames(stations3) == "PlantID"] <- "plantid"
+data2 <- left_join(met_df2, stations3 %>% dplyr::select(id, plantid, Distance), by = c("id", "plantid"))
+
+#combine datasets data1 and data2
+combined_df <- full_join(data1, data2, by = c("id", "plantid", "date", "Year"), suffix = c("_1", "_2"))
+
+# Replace NA values in prcp, tmax, and Distance
+combined_df <- combined_df %>%
+  mutate(
+    prcp = coalesce(prcp_1, prcp_2),
+    tmax = coalesce(tmax_1, tmax_2),
+    Distance = coalesce(Distance_1, Distance_2)
+  ) %>%
+  # Select the relevant columns
+  dplyr::select(id, plantid, date, Year, prcp, tmax, Distance)
+
+
+#for each plant id, find the mean prcp, max, and distance
+combined_df_selected1 <- combined_df %>%
+  group_by(plantid) %>%
+  summarize(
+    mean_prcp = mean(prcp, na.rm = TRUE),
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    mean_distance = mean(Distance, na.rm = TRUE))%>%
+  filter(!is.nan(mean_prcp) & !is.nan(mean_distance) & !is.nan(mean_tmax)) 
+    
+#join temp, prcp, distance data with HerbariumData_fl
+combined_df_selected2 <- combined_df_selected1 %>%
+  dplyr::select(plantid, mean_prcp, mean_tmax, mean_distance)
+
+analyze_df <- left_join(HerbariumData_fl, combined_df_selected2, by = c("Identification" = "plantid"))%>%
+  drop_na(Longitude, Latitude)
+
+#addding elevation information
+long_lat_df <- analyze_df[c(14,13)]%>%
+  rename(x = Longitude , y = Latitude) 
+library(rgbif)
+analyze_df <- 
+  mutate (
+elevation_calculated <- elevation(
+  input = NULL,
+  latitude = long_lat_df$y,
+  longitude = long_lat_df$x,
+  elevation_model = "srtm3",
+  username = Sys.getenv("sbetts")
+))
+ 
+library(elevatr)
+get_elev_point(long_lat_df, src = "epqs")
+
+# Calculate average growing season precip at tmax values
+avg_precip <- analyze_df %>%
+  group_by(mean_tmax) %>%
+  summarize(avg_precip = mean(prcp, na.rm = TRUE))
+
+
+# Fit linear regression model for flowering date over time
+flowering_model <- lm(julian_date ~ Year + Latitude + Longitude + mean_distance, data = analyze_df)
+summary(flowering_model) 
+
+ggplot(analyze_df, aes(x = Year, y = julian_date)) +
+  geom_point(color = "blue", size = 1) +                    
+  geom_smooth(method = "lm", color = "red") +    
+  labs(title = "Flowering Date Over Time",       
+       x = "Year",                               
+       y = "Julian Date") +                      
+  theme_minimal()          
+
+
+# Fit linear regression model for the effect of climate (temp and precip) over time
+climate_model <- lm(julian_date ~ mean_tmax + mean_prcp + Latitude + Longitude + mean_distance, data = analyze_df)
+summary(climate_model)
+
+# Scatter plot with regression line for tmax
+ggplot(analyze_df, aes(x = mean_tmax, y = julian_date)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Effect of Maximum Temperature on Flowering Date",
+       x = "Maximum Temperature (tmax)",
+       y = "Julian Date") +
+  theme_minimal()
+
+# Scatter plot with regression line for prcp
+ggplot(analyze_df, aes(x = mean_prcp, y = julian_date)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(title = "Effect of Precipitation on Flowering Date",
+       x = "Precipitation (prcp)",
+       y = "Julian Date") +
+  theme_minimal()
+
 
 
 #####################################################
