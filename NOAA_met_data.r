@@ -60,7 +60,7 @@ HerbariumData_nona <- HerbariumData[-missing_rows, ]
 #batch_results_df <- data.frame()
 batch_results_df <- read.csv("nearest_stations.csv")
 
-# Define the range of rows, next start with 639
+# Define the range of rows, next start with 637
 start_row <- 1
 end_row <- 636
 
@@ -146,7 +146,7 @@ write.csv(met_data, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-pheno
 met_df <- read.csv("met_data.csv")
 stations2 <- read.csv("nearest_stations.csv")
 
-#start with 639 next
+#start with 637 next
 start_row <- 1
 end_row <- 636
 
@@ -205,7 +205,7 @@ write.csv(met_df, file = output_file, row.names = FALSE)
 #create a subset
 na_subset <- met_df %>%
   filter(is.na(prcp) | is.na(tmax)) %>%
-  select(plantid) %>%
+  dplyr::select(plantid) %>%
   distinct() %>%
   inner_join(HerbariumData_nona, by = join_by(plantid == Identification))
 
@@ -213,7 +213,7 @@ na_subset <- met_df %>%
 #na_df <- data.frame()
 na_df <- read.csv("nearest_stations2.csv")
 
-# Define the range of rows, next start with 
+# Define the range of rows, next start with 353
 start_row <- 1
 end_row <- 352
 
@@ -275,7 +275,7 @@ met_df2 <- read.csv("met_data2.csv")
 stations3 <- read.csv("nearest_stations2.csv")
 
 start_row <- 1
-end_row <- 636
+end_row <- 352
 
 system.time({
   # Iterate through the specified range of rows
@@ -376,62 +376,70 @@ analyze_df <- left_join(HerbariumData_fl, combined_df_selected2, by = c("Identif
   drop_na(Longitude, Latitude)
 
 #addding elevation information
-long_lat_df <- analyze_df[c(14,13)]%>%
-  rename(x = Longitude , y = Latitude) 
-library(rgbif)
-analyze_df <- 
-  mutate (
-elevation_calculated <- elevation(
-  input = NULL,
-  latitude = long_lat_df$y,
-  longitude = long_lat_df$x,
-  elevation_model = "srtm3",
-  username = Sys.getenv("sbetts")
-))
- 
 library(elevatr)
-get_elev_point(long_lat_df, src = "epqs")
 
-# Calculate average growing season precip at tmax values
-avg_precip <- analyze_df %>%
-  group_by(mean_tmax) %>%
-  summarize(avg_precip = mean(prcp, na.rm = TRUE))
+long_lat_df <- analyze_df[c(14,13)]%>%
+  rename(x = Longitude , y = Latitude) %>%
+  mutate(names = analyze_df$Identification)
+long_lat_df <- as.data.frame(long_lat_df)
+elevation_df <- get_elev_point(locations = long_lat_df, prj = ll_prj)
 
+analyze_df_elevation <- analyze_df %>%
+  mutate(elevation_calc = elevation_df$elevation) %>%
+  filter(!is.na(elevation_calc))
 
 # Fit linear regression model for flowering date over time
-flowering_model <- lm(julian_date ~ Year + Latitude + Longitude + mean_distance, data = analyze_df)
+flowering_model <- lm(julian_date ~ Year + Latitude + Longitude + mean_distance + Phenophase_detail, data = analyze_df)
 summary(flowering_model) 
 
+#linear model with elevation
+flowering_model_elevation <- lm(julian_date ~ Year + Latitude + Longitude + mean_distance + Phenophase_detail + elevation_calc, data = analyze_df_elevation)
+summary(flowering_model) 
+
+
 ggplot(analyze_df, aes(x = Year, y = julian_date)) +
-  geom_point(color = "blue", size = 1) +                    
+  geom_point(color = "blue", alpha = 0.6) +                    
   geom_smooth(method = "lm", color = "red") +    
   labs(title = "Flowering Date Over Time",       
        x = "Year",                               
        y = "Julian Date") +                      
-  theme_minimal()          
+  theme_minimal()   +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black"))
 
 
 # Fit linear regression model for the effect of climate (temp and precip) over time
 climate_model <- lm(julian_date ~ mean_tmax + mean_prcp + Latitude + Longitude + mean_distance, data = analyze_df)
 summary(climate_model)
 
+#linear model for effects of climate (temp and precip) with elevation df
+climate_model_elevation <- lm(julian_date ~ mean_tmax + mean_prcp + Latitude + Longitude + mean_distance + elevation_calc, data = analyze_df_elevation)
+summary(climate_model)
+
 # Scatter plot with regression line for tmax
-ggplot(analyze_df, aes(x = mean_tmax, y = julian_date)) +
+ggplot(analyze_df, aes(y = mean_tmax, x = Year)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", color = "blue") +
   labs(title = "Effect of Maximum Temperature on Flowering Date",
-       x = "Maximum Temperature (tmax)",
-       y = "Julian Date") +
-  theme_minimal()
+       x = "Year",
+       y = "Maximum Temperature (tmax)") +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black"))
 
 # Scatter plot with regression line for prcp
-ggplot(analyze_df, aes(x = mean_prcp, y = julian_date)) +
+ggplot(analyze_df, aes(x = mean_prcp, y = Year)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", color = "blue") +
   labs(title = "Effect of Precipitation on Flowering Date",
        x = "Precipitation (prcp)",
-       y = "Julian Date") +
-  theme_minimal()
+       y = "Year") +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black"))
 
 
 
