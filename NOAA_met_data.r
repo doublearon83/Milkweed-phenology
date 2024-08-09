@@ -35,12 +35,12 @@ write.csv(stat_plant, file = '/Users/kegem/Desktop/GitHub/Project13/Milkweed-phe
 
 ################################################################
 # code for looping through each plant by year in Herbarium Data
-#Herbarium Data
+#Herbarium Data from Google Sheets
 library(googlesheets4)
 gs4_deauth()
 HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_sx9veANUHr0jn4caxJzPPwRhRyDKLGFo/edit#gid=0")
 
-#check duplicates
+#check for duplicate plantids 
 HerbariumData[HerbariumData$Identification %in% HerbariumData$Identification[duplicated(HerbariumData$Identification)], ]
 
 
@@ -368,14 +368,14 @@ combined_df_selected1 <- combined_df %>%
     mean_distance = mean(Distance, na.rm = TRUE))%>%
   filter(!is.nan(mean_prcp) & !is.nan(mean_distance) & !is.nan(mean_tmax)) 
     
-#join temp, prcp, distance data with HerbariumData_fl
+#join temp, prcp, distance data with HerbariumData_fl data (generated from Herbarium.rmd)
 combined_df_selected2 <- combined_df_selected1 %>%
   dplyr::select(plantid, mean_prcp, mean_tmax, mean_distance)
 
 analyze_df <- left_join(HerbariumData_fl, combined_df_selected2, by = c("Identification" = "plantid"))%>%
   drop_na(Longitude, Latitude)
 
-#addding elevation information
+#adding elevation information
 library(elevatr)
 
 long_lat_df <- analyze_df[c(14,13)]%>%
