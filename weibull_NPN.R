@@ -38,21 +38,19 @@ scale_shape <- data.frame(phen_data_0_1$Observation_ID, shape_param, scale_param
 
 time_points <- c(min(phen_data_0_1$Day_of_Year), max(phen_data_0_1$Day_of_Year))
 
+library(dplyr)
 
-# Create a data frame
+# Define time points
+time_points <- c(min(phen_data_0_1$Day_of_Year), max(phen_data_0_1$Day_of_Year))
+
+# Create a data frame and calculate cumulative probabilities using mutate, need rep to ensure there is a time point for each parameter
 results <- data.frame(
   Time_Point = rep(time_points, length(shape_param)),
   Shape_Param = rep(shape_param, each = length(time_points)),
-  Scale_Param = rep(scale_param, each = length(time_points)),
-  Cumulative_Prob = NA  
-)
+  Scale_Param = rep(scale_param, each = length(time_points))
+) %>%
+  mutate(Cumulative_Prob = pweibull(Time_Point, shape = Shape_Param, scale = Scale_Param))
 
-# Calculate cumulative probabilities for each combination of parameters and time points
-for (i in 1:nrow(results)) {
-  results$Cumulative_Prob[i] <- pweibull(results$Time_Point[i],
-                                         shape = results$Shape_Param[i],
-                                         scale = results$Scale_Param[i])
-}
 print(results)
 
 
@@ -65,7 +63,6 @@ ggplot(results, aes(x = Time_Point, y = Cumulative_Prob)) +
        x = "Time Point (Day of Year)",
        y = "Cumulative Probability") +
   theme_minimal()
-
 
 ################Resampling from a given weibull distribution#################
 rweibull(4530, shape = shape_param, scale = scale_param)
