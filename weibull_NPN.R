@@ -71,14 +71,16 @@ scale_shape <- scale_shape %>%
 
 
 #Not hard coded
-
 x <- .5 #percentile
 y <- 500 #number of iterations
-sample_size <- 1000  # Number of rows 
-scale_shape_sample <- scale_shape %>% sample_n(sample_size)
-
+sample_size <- 3 # Number of rows 
+#data with all rows
+scale_shape <- data.frame(phen_data_0_1$Observation_ID, shape_param, scale_param) %>% 
+  rename(Observation_ID = phen_data_0_1.Observation_ID )
+#sample data
+scale_shape_sample <- sample_n(scale_shape, sample_size)
 # Loop through each row
-for (i in 1:nrow(scale_shape)) {
+for (i in 1:nrow(scale_shape_sample)) {
   #qweibull for actual shape and scale parameters
   scale_shape_sample$qweibull[i] <- qweibull(x, scale_shape_sample$shape_param[i], scale_shape_sample$scale_param[i])
   #random samples
@@ -97,5 +99,3 @@ for (i in 1:nrow(scale_shape)) {
 #comparing the differences between actual and estimated parameters
 scale_shape_sample <- scale_shape_sample %>%
   mutate(difference <- scale_shape_sample$qweibull - mean(scale_shape_sample$qweibull_estimated))
-
-
