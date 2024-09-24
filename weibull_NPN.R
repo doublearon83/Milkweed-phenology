@@ -2,7 +2,8 @@
 library(flexsurv)
 library(survival)
 
-############estimate parameters ########################
+
+############ finding estimate parameters ########################
 surv_obj <- Surv(phen_data_0_1$Day_of_Year, phen_data_0_1$Phenophase_Status)
 
 # Fit the Weibull regression model
@@ -31,41 +32,70 @@ print(shape_param)
 print(scale_param)
 
 
-scale_shape <- data.frame(phen_data_0_1$Observation_ID, shape_param, scale_param)
+scale_shape <- data.frame(phen_data_0_1$Observation_ID, shape_param, scale_param) %>% 
+  rename(Observation_ID = phen_data_0_1.Observation_ID )
+
+##################################################################
+#notes
+require(fitdistrplus)
+
+qweibull(0.5,shape_param[1],scale_param[1])
+test <- qweibull(runif(10),shape_param[1],scale_param[1])
+
+estimated_param <- fitdist(test,"weibull")$estimate
+
+qweibull(0.5,estimated_param[1],estimated_param[2])
+################################################################
+#Comparing actual parameters to estimated (Hard coded)
+
+# Loop through each row
+for (i in 1:nrow(scale_shape)) {
+  #qweibull for actual shape and scale parameters
+  scale_shape$qweibull[i] <- qweibull(.5, scale_shape$shape_param[i], scale_shape$scale_param[i])
+  #random samples
+    random_samples <- qweibull(runif(100), scale_shape$shape_param[i], scale_shape$scale_param[i])
+  scale_shape$qweibull_random[i] <- mean(random_samples)
+  
+#Estimate the shape and scale parameters from the random samples for estimates
+  estimated_param <- fitdist(random_samples, "weibull")$estimate
+  scale_shape$estimated_shape[i] <- estimated_param[1]
+  scale_shape$estimated_scale[i] <- estimated_param[2]
+  
+#Apply qweibull for esimated
+  scale_shape$qweibull_estimated[i] <- qweibull(.5, estimated_param[1], estimated_param[2])
+}
 
 
-#############Cumulative probabilities#################
-
-time_points <- c(min(phen_data_0_1$Day_of_Year), max(phen_data_0_1$Day_of_Year))
-
-library(dplyr)
-
-# Define time points
-time_points <- c(min(phen_data_0_1$Day_of_Year), max(phen_data_0_1$Day_of_Year))
-
-# Create a data frame and calculate cumulative probabilities using mutate, need rep to ensure there is a time point for each parameter
-results <- data.frame(
-  Time_Point = rep(time_points, length(shape_param)),
-  Shape_Param = rep(shape_param, each = length(time_points)),
-  Scale_Param = rep(scale_param, each = length(time_points))
-) %>%
-  mutate(Cumulative_Prob = pweibull(Time_Point, shape = Shape_Param, scale = Scale_Param))
-
-print(results)
+scale_shape <- scale_shape %>%
+  mutate(difference <- scale_shape$qweibull - mean(scale_shape$qweibull_estimated))
 
 
-# Plot cumulative probabilities
-library(ggplot2)
+#Not hard coded
 
-ggplot(results, aes(x = Time_Point, y = Cumulative_Prob)) +
-  geom_line() +
-  labs(title = "Cumulative Probability Function",
-       x = "Time Point (Day of Year)",
-       y = "Cumulative Probability") +
-  theme_minimal()
+x <- .5 #percentile
+y <- 500 #number of iterations
+sample_size <- 1000  # Number of rows 
+scale_shape_sample <- scale_shape %>% sample_n(sample_size)
 
-################Resampling from a given weibull distribution#################
-rweibull(4530, shape = shape_param, scale = scale_param)
+# Loop through each row
+for (i in 1:nrow(scale_shape)) {
+  #qweibull for actual shape and scale parameters
+  scale_shape_sample$qweibull[i] <- qweibull(x, scale_shape_sample$shape_param[i], scale_shape_sample$scale_param[i])
+  #random samples
+  random_samples <- qweibull(runif(y), scale_shape_sample$shape_param[i], scale_shape_sample$scale_param[i])
+  scale_shape_sample$qweibull_random[i] <- mean(random_samples)
+  
+  #Estimate the shape and scale parameters from the random samples for estimates
+  estimated_param <- fitdist(random_samples, "weibull")$estimate
+  scale_shape_sample$estimated_shape[i] <- estimated_param[1]
+  scale_shape_sample$estimated_scale[i] <- estimated_param[2]
+  
+  #Apply qweibull for estimated
+  scale_shape_sample$qweibull_estimated[i] <- qweibull(x, estimated_param[1], estimated_param[2])
+}
 
+#comparing the differences between actual and estimated parameters
+scale_shape_sample <- scale_shape_sample %>%
+  mutate(difference <- scale_shape_sample$qweibull - mean(scale_shape_sample$qweibull_estimated))
 
 
