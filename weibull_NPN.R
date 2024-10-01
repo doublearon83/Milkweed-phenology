@@ -1,6 +1,8 @@
 
 library(flexsurv)
 library(survival)
+require(fitdistrplus)
+
 
 
 ############ finding estimate parameters ########################
@@ -49,12 +51,13 @@ qweibull(0.5,estimated_param[1],estimated_param[2])
 #Comparing actual parameters to estimated (Hard coded)
 
 # Loop through each row
+new_data <- matrix(0,nrow=nrow(scale_shape),ncol=length(ni))
+for (j in 1:ni) {
 for (i in 1:nrow(scale_shape)) {
   #qweibull for actual shape and scale parameters
   scale_shape$qweibull[i] <- qweibull(.5, scale_shape$shape_param[i], scale_shape$scale_param[i])
   #random samples
     random_samples <- qweibull(runif(100), scale_shape$shape_param[i], scale_shape$scale_param[i])
-  scale_shape$qweibull_random[i] <- mean(random_samples)
   
 #Estimate the shape and scale parameters from the random samples for estimates
   estimated_param <- fitdist(random_samples, "weibull")$estimate
@@ -64,28 +67,140 @@ for (i in 1:nrow(scale_shape)) {
 #Apply qweibull for esimated
   scale_shape$qweibull_estimated[i] <- qweibull(.5, estimated_param[1], estimated_param[2])
 }
+  new_data[,j]<-scale_shape$qweibull_estimated
+}
 
 
-scale_shape <- scale_shape %>%
-  mutate(difference <- scale_shape$qweibull - mean(scale_shape$qweibull_estimated))
+#Using lapply
+  
+#Calculate qweibull for all rows using the actual shape and scale parameters
+scale_shape_test$qweibull <- mapply(qweibull, 0.5, scale_shape$shape_param, scale_shape$scale_param)
+
+#Generate random samples for each row using a vectorized approach
+random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(100), shape, scale),
+                                scale_shape$shape_param, scale_shape$scale_param, SIMPLIFY = FALSE)
+
+#Estimate the Weibull distribution parameters for each set of random samples
+estimated_param <- lapply(random_samples_matrix, function(samples) fitdist(samples, "weibull")$estimate)
+
+#Extract the estimated shape and scale parameters into separate columns
+scale_shape$estimated_shape[i] <- estimated_param[1]
+scale_shape$estimated_scale[i] <- estimated_param[2]
+
+#Apply qweibull for the estimated parameters using the vectorized function
+scale_shape_test$qweibull_estimated <- mapply(qweibull, 0.5, scale_shape$estimated_shape, scale_shape$estimated_scale)
+
+
+# View the final data frame
+print(scale_shape)
+
+
+
+#using loops for all estimations
+# Define the number of iterations
+ni <- 5  # Set the number of iterations
+
+# Initialize a matrix to store estimated qweibull values for each iteration
+new_data <- matrix(0, nrow = nrow(scale_shape), ncol = ni)
+
+# Loop through each iteration
+for (j in 1:ni) {
+  for (i in 1:nrow(scale_shape)) {
+    # qweibull for actual shape and scale parameters (baseline calculation)
+    scale_shape$qweibull[i] <- qweibull(.5, scale_shape$shape_param[i], scale_shape$scale_param[i])
+    
+    # Generate random samples using the actual shape and scale parameters
+    random_samples <- qweibull(runif(100), scale_shape$shape_param[i], scale_shape$scale_param[i])
+    
+    # Estimate the shape and scale parameters from the random samples for estimates
+    estimated_param <- fitdist(random_samples, "weibull")$estimate
+    scale_shape$estimated_shape[i] <- estimated_param[1]
+    scale_shape$estimated_scale[i] <- estimated_param[2]
+    
+    # Apply qweibull using the estimated parameters
+    scale_shape$qweibull_estimated[i] <- qweibull(.5, estimated_param[1], estimated_param[2])
+  }
+  # Store the estimated qweibull values for this iteration in the matrix
+  new_data[, j] <- scale_shape$qweibull_estimated
+}
+
+# Calculate the mean for each column
+column_means <- colMeans(new_data)
+
+bias_result <- data.frame(
+  Original = scale_shape$qweibull,
+  Column_Means = column_means,
+  Bias = column_means - scale_shape$qweibull  
+)
+
+
+
+##using vectorization for all estimates
+# Define the number of iterations
+ni <- 5  # Set the number of iterations 
+
+# Initialize a matrix to store estimated qweibull values for each iteration
+new_data <- matrix(0, nrow = nrow(scale_shape), ncol = ni)
+
+# Calculate qweibull for all rows using the actual shape and scale parameters
+scale_shape$qweibull <- mapply(qweibull, 0.5, scale_shape$shape_param, scale_shape$scale_param)
+
+# Loop through each iteration
+for (j in 1:ni) {
+  # Generate random samples for each row using a vectorized approach
+  random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(100), shape, scale),
+                                  scale_shape$shape_param, scale_shape$scale_param, SIMPLIFY = FALSE)
+  
+  # Estimate the Weibull distribution parameters for each set of random samples
+  estimated_param <- lapply(random_samples_matrix, function(samples) fitdist(samples, "weibull")$estimate)
+  
+  # Extract the estimated shape and scale parameters into separate columns
+  scale_shape$estimated_shape <- sapply(estimated_param, `[[`, 1)
+  scale_shape$estimated_scale <- sapply(estimated_param, `[[`, 2)
+  # Apply qweibull for the estimated parameters using the vectorized function
+  scale_shape$qweibull_estimated <- mapply(qweibull, 0.5, scale_shape$estimated_shape, scale_shape$estimated_scale)
+  
+  # Store the estimated qweibull values for this iteration in the matrix
+  new_data[, j] <- scale_shape$qweibull_estimated
+}
+
+
+# Calculate the mean for each column
+column_means <- colMeans(new_data)
+
+bias_results <- data.frame(
+  Original = scale_shape$qweibull,
+  Column_Means = column_means,
+  Bias = column_means - scale_shape$qweibull 
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #Not hard coded
 x <- .5 #percentile
-y <- 500 #number of iterations
-sample_size <- 3 # Number of rows 
-#data with all rows
+y <- 500 #sample size
 scale_shape <- data.frame(phen_data_0_1$Observation_ID, shape_param, scale_param) %>% 
   rename(Observation_ID = phen_data_0_1.Observation_ID )
 #sample data
-scale_shape_sample <- sample_n(scale_shape, sample_size)
 # Loop through each row
 for (i in 1:nrow(scale_shape_sample)) {
   #qweibull for actual shape and scale parameters
   scale_shape_sample$qweibull[i] <- qweibull(x, scale_shape_sample$shape_param[i], scale_shape_sample$scale_param[i])
   #random samples
   random_samples <- qweibull(runif(y), scale_shape_sample$shape_param[i], scale_shape_sample$scale_param[i])
-  scale_shape_sample$qweibull_random[i] <- mean(random_samples)
+
   
   #Estimate the shape and scale parameters from the random samples for estimates
   estimated_param <- fitdist(random_samples, "weibull")$estimate
