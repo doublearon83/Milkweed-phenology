@@ -137,7 +137,8 @@ bias_result <- data.frame(
 
 ##using vectorization for all estimates
 # Define the number of iterations
-ni <- 5  # Set the number of iterations 
+ni <- 1  # Set the number of iterations 
+samp_size <- 25
 
 # Initialize a matrix to store estimated qweibull values for each iteration
 new_data <- matrix(0, nrow = nrow(scale_shape), ncol = ni)
@@ -148,7 +149,7 @@ scale_shape$qweibull <- mapply(qweibull, 0.5, scale_shape$shape_param, scale_sha
 # Loop through each iteration
 for (j in 1:ni) {
   # Generate random samples for each row using a vectorized approach
-  random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(100), shape, scale),
+  random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
                                   scale_shape$shape_param, scale_shape$scale_param, SIMPLIFY = FALSE)
   
   # Estimate the Weibull distribution parameters for each set of random samples
@@ -166,12 +167,13 @@ for (j in 1:ni) {
 
 
 # Calculate the mean for each column
-column_means <- colMeans(new_data)
+if (ni==1) {column_means<-new_data} else {column_means <- colMeans(new_data)}
 
 bias_results <- data.frame(
   Original = scale_shape$qweibull,
   Column_Means = column_means,
-  Bias = column_means - scale_shape$qweibull 
+  Bias = column_means - scale_shape$qweibull,
+  corrected = 2*scale_shape$qweibull-column_means
 )
 
 
