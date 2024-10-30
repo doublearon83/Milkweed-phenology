@@ -421,9 +421,10 @@ summary(climate_model)
 ggplot(analyze_df, aes(y = mean_tmax, x = Year)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", color = "blue") +
-  labs(title = "Effect of Maximum Temperature on Flowering Date",
+  labs(
+    #title = "Effect of Maximum Temperature on Flowering Date",
        x = "Year",
-       y = "Maximum Temperature (tmax)") +
+       y = "Maximum Temperature (0.1°C)") +
   theme_minimal() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -433,13 +434,17 @@ ggplot(analyze_df, aes(y = mean_tmax, x = Year)) +
 ggplot(analyze_df, aes(x = mean_prcp, y = Year)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", color = "blue") +
-  labs(title = "Effect of Precipitation on Flowering Date",
-       x = "Precipitation (prcp)",
+  labs(
+    #title = "Effect of Precipitation on Flowering Date",
+       x = "Precipitation (0.1 mm)",
        y = "Year") +
   theme_minimal() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         axis.line = element_line(color = "black"))
+
+
+
 
 
 
