@@ -5,14 +5,17 @@ require(fitdistrplus)
 library(dplyr)
 
 ############ finding estimate parameters ########################
-surv_obj <- Surv(phen_data$Day_of_Year, phen_data$Phenophase_Status)
+phen_data_of <- phen_data %>%
+  filter(phen_data$Phenophase_Status== 1 & phen_data$Phenophase_Description == "Open flowers")
+
+surv_obj <- Surv(phen_data_of$Day_of_Year, phen_data_of$Phenophase_Status)
 
 # Fit the Weibull regression model
 # Covariates Latitude, Longitude, and Elevation_in_Meters 
   fit <- flexsurvreg(surv_obj ~ Latitude + Longitude + Elevation_in_Meters, 
                    anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters), 
                    dist = "weibull", 
-                   data = phen_data)
+                   data = phen_data_of)
 # Display the coefficients of the model
 coef(fit)
 
@@ -70,17 +73,22 @@ for (j in 1:ni) {
 
 
 # Calculate the mean for each column
-if (ni==1) {column_means<-new_data} else {column_means <- colMeans(new_data)}
+if (ni == 1) {
+  column_means <- new_data
+} else {
+  column_means <- colMeans(new_data, na.rm = TRUE)
+}
 
-bias_results <- data.frame(
+bias_results_NPN <- data.frame(
   Observation_ID = scale_shape$Observation_ID,
   Original = scale_shape$qweibull,
   Column_Means = column_means,
   Bias = column_means - scale_shape$qweibull,
-  corrected = 2*scale_shape$qweibull-column_means
+  corrected = 2*scale_shape$qweibull-column_means #Belitz paper
 )
 
-bias_results
+bias_results_NPN
+
 
 
 
