@@ -21,14 +21,14 @@ coef(fit)
 
 # Compute shape and scale parameters using coefficients
 shape_param <- exp(coef(fit)["shape"] +
-                     coef(fit)["shape(Latitude)"] * phen_data$Latitude +
-                     coef(fit)["shape(Longitude)"] * phen_data$Longitude +
-                     coef(fit)["shape(Elevation_in_Meters)"] * phen_data$Elevation_in_Meters)
+                     coef(fit)["shape(Latitude)"] * phen_data_of$Latitude +
+                     coef(fit)["shape(Longitude)"] * phen_data_of$Longitude +
+                     coef(fit)["shape(Elevation_in_Meters)"] * phen_data_of$Elevation_in_Meters)
 
 scale_param <- exp(coef(fit)["scale"] +
-                     coef(fit)["Latitude"] * phen_data$Latitude +
-                     coef(fit)["Longitude"] * phen_data$Longitude +
-                     coef(fit)["Elevation_in_Meters"] * phen_data$Elevation_in_Meters)
+                     coef(fit)["Latitude"] * phen_data_of$Latitude +
+                     coef(fit)["Longitude"] * phen_data_of$Longitude +
+                     coef(fit)["Elevation_in_Meters"] * phen_data_of$Elevation_in_Meters)
 
 
 
@@ -36,14 +36,14 @@ print(shape_param)
 print(scale_param)
 
 
-scale_shape <- data.frame(phen_data$Observation_ID, shape_param, scale_param) %>% 
-  rename(Observation_ID = phen_data.Observation_ID )
+scale_shape <- data.frame(phen_data_of$Observation_ID, shape_param, scale_param) %>% 
+  rename(Observation_ID = phen_data_of.Observation_ID )
 
 ##################################################################
 
 # Define the number of iterations
-ni <- 1  # Set the number of iterations 
-samp_size <- 25
+ni <- 5  # Set the number of iterations 
+samp_size <- 1
 percentile <- 0.5
 
 # Initialize a matrix to store estimated qweibull values for each iteration
@@ -58,17 +58,39 @@ for (j in 1:ni) {
   random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
                                   scale_shape$shape_param, scale_shape$scale_param, SIMPLIFY = FALSE)
   
+  surv_obj_bias <- Surv(as.numeric(random_samples_matrix), phen_data_of$Phenophase_Status)
+  
+  # Use flexsurvreg to estimate Weibull dist params for random samples
+  fit_bias <- flexsurvreg(surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters, 
+                     anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters), 
+                     dist = "weibull", 
+                     data = phen_data_of)
+  
+  # Compute shape and scale parameters using coefficients
+  shape_param_bias <- exp(coef(fit_bias)["shape"] +
+                       coef(fit_bias)["shape(Latitude)"] * phen_data_of$Latitude +
+                       coef(fit_bias)["shape(Longitude)"] * phen_data_of$Longitude +
+                       coef(fit_bias)["shape(Elevation_in_Meters)"] * phen_data_of$Elevation_in_Meters)
+  
+  scale_param_bias <- exp(coef(fit_bias)["scale"] +
+                       coef(fit_bias)["Latitude"] * phen_data_of$Latitude +
+                       coef(fit_bias)["Longitude"] * phen_data_of$Longitude +
+                       coef(fit_bias)["Elevation_in_Meters"] * phen_data_of$Elevation_in_Meters)
+  
   # Estimate the Weibull distribution parameters for each set of random samples
-  estimated_param <- lapply(random_samples_matrix, function(samples) fitdist(samples, "weibull")$estimate)
+  # Uses fitdist but need random samples >1 for each data point
+  # estimated_param <- lapply(random_samples_matrix, function(samples) fitdist(samples, "weibull")$estimate)
+
   
   # Extract the estimated shape and scale parameters into separate columns
-  scale_shape$estimated_shape <- sapply(estimated_param, `[[`, 1)
-  scale_shape$estimated_scale <- sapply(estimated_param, `[[`, 2)
+  # scale_shape$estimated_shape <- sapply(estimated_param, `[[`, 1)
+  # scale_shape$estimated_scale <- sapply(estimated_param, `[[`, 2)
+  
   # Apply qweibull for the estimated parameters using the vectorized function
-  scale_shape$qweibull_estimated <- mapply(qweibull, percentile, scale_shape$estimated_shape, scale_shape$estimated_scale)
+  qweibull_estimated <- mapply(qweibull, percentile, shape_param_bias, scale_param_bias)
   
   # Store the estimated qweibull values for this iteration in the matrix
-  new_data[, j] <- scale_shape$qweibull_estimated
+  new_data[, j] <- qweibull_estimated
 }
 
 
