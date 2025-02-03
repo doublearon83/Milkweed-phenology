@@ -42,7 +42,7 @@ scale_shape <- data.frame(phen_data_of$Observation_ID, shape_param, scale_param)
 ##################################################################
 
 # Define the number of iterations
-ni <- 5  # Set the number of iterations 
+ni <- 100  # Set the number of iterations 
 samp_size <- 1
 percentile <- 0.5
 

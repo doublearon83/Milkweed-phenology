@@ -1,25 +1,23 @@
 #non corrected data: phen_data_0_1
 #corrected data: bias_results_NPN
 #combined by plant id and get rid of other data if extra
-library(VGAM)
 
 combined_data_final <- inner_join(bias_results_NPN, phen_data_0_1, by = "Observation_ID")
 
+#Compare 
+#bias_results_NPN
+out_1 <- lmer(corrected ~ Latitude + Longitude + Elevation_s +
+              Year_s + gs_temp_z + gs_precip_z +
+              (1|Individual_ID)-1, data=combined_data_final)
+summary(out_1)
+Anova(out_1)
 
-#Compare these using 
 
-weibull_model_notcorrected <- vglm(Day_of_Year ~ Latitude * Phenophase_Description + Longitude * Phenophase_Description + 
-                             Elevation_s * Phenophase_Description + Phenophase_Description * Year_s + 
-                             Phenophase_Description * gs_temp_z + Phenophase_Description * gs_precip_z,
-                           family = weibullR, data = combined_data_final)
-summary(weibull_model_notcorrected)
-Anova(weibull_model_notcorrected)
-
-weibull_model_phen_corrected <- vglm(corrected ~ Latitude * Phenophase_Description + Longitude * Phenophase_Description + 
-                             Elevation_s * Phenophase_Description + Phenophase_Description * Year_s + 
-                             Phenophase_Description * gs_temp_z + Phenophase_Description * gs_precip_z,
-                           family = weibullR, data = combined_data_final)
-summary(weibull_model_phen_corrected)
-Anova(weibull_model_phen_corrected)
+#phen_data_0_1
+out_2 <- lmer(Day_of_Year ~ Latitude + Longitude + Elevation_s +
+                Year_s + gs_temp_z + gs_precip_z +
+                (1|Individual_ID)-1, data=combined_data_final)
+summary(out_2)
+Anova(out_2)
 
 
