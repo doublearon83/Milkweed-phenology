@@ -15,6 +15,18 @@ phen_data[phen_data==-9999] <- NA
 # create year variable
 phen_data$Year <- substr(phen_data$Observation_Date, 1, 4)
 
+#calculate growing season averages (phen_data)
+phen_data$gs_temp <- rowMeans(cbind(phen_data$Tmax_Spring,phen_data$Tmax_Summer,phen_data$Tmax_Fall))
+phen_data$gs_precip <- rowMeans(cbind(phen_data$Prcp_Spring,phen_data$Prcp_Summer,phen_data$Prcp_Fall))
+
+#standardize variables for analysis (phen_data)
+phen_data$gs_temp_z <- scale(phen_data$gs_temp)
+phen_data$gs_precip_z <- scale(phen_data$gs_precip)
+phen_data$Year <- as.numeric(phen_data$Year)
+phen_data$Year_s <- phen_data$Year-(min(phen_data_0_1$Year)+1)
+phen_data$Elevation_s <- scale(phen_data$Elevation_in_Meters)
+
+
 # subset only initial growth, open flowers, and ripe fruit
 my_patterns <- c("Initial growth","Open flowers","Ripe fruits")
 phen_data_ior <- dplyr::filter(phen_data,grepl(paste(my_patterns, collapse='|'),Phenophase_Description))

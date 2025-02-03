@@ -20,4 +20,27 @@ out_2 <- lmer(Day_of_Year ~ Latitude + Longitude + Elevation_s +
 summary(out_2)
 Anova(out_2)
 
+#comparing bias_results_NPN and phen_data
+combined_data_final2 <- inner_join(bias_results_NPN, phen_data, by = "Observation_ID")
+
+#Compare 
+#bias_results_NPN
+out_3 <- lmer(corrected ~ Latitude + Longitude + Elevation_s +
+                Year_s + gs_temp_z + gs_precip_z +
+                (1|Individual_ID)-1, data=combined_data_final2)
+summary(out_3)
+Anova(out_3)
+
+
+#phen_data_0_1
+out_4 <- lmer(Day_of_Year ~ Latitude + Longitude + Elevation_s +
+                Year_s + gs_temp_z + gs_precip_z +
+                (1|Individual_ID)-1, data=combined_data_final2)
+summary(out_4)
+Anova(out_4)
+
+
+
+
+
 
