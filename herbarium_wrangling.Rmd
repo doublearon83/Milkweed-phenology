@@ -27,21 +27,50 @@ HerbariumData_test <-
 HerbariumData %>%
   mutate(Phenophase = as.factor(Phenophase),
          collection_date = as.Date(paste(Year, Month, Day, sep = "-")),
-         julian_date = yday(collection_date),
-         Latitude = as.numeric(Latitude))
+         Day_of_Year = yday(collection_date), #julien date
+         Latitude = as.numeric(Latitude)) %>%
+  mutate(Elevation_in_Meters = map_dbl(Elevation_in_Meters, ~ ifelse(is.null(.x), NA, as.numeric(.x))))
+
+
 
 names(HerbariumData_test)[3]<- "Phenophase_detail"
+names(HerbariumData_test)[1]<- "Observation_ID"
+
 
 HerbariumData_fl <-
   HerbariumData_test %>%
-  filter(Phenophase == "fl")
+  filter(Phenophase == "fl") 
 
+#create a Phenophase_Status variable for open flowers (to use with Surv function)
+HerbariumData_fl <- HerbariumData_fl %>%
+  mutate(Phenophase_Status = ifelse(Phenophase_detail %in% "fl", 0, 1))
+
+#use this data set for weibull running
+HerbariumData_fl_use <- HerbariumData_fl %>%
+  filter(!is.na(Elevation_in_Meters)) %>%
+  filter(!is.na(Latitude)) %>%
+  filter(!is.na(Longitude))
+
+#standardize variables for analysis 
+HerbariumData_fl_use$Year <- as.numeric(HerbariumData_fl_use$Year)
+HerbariumData_fl_use$Year_s <- HerbariumData_fl_use$Year-(min(phen_data_0_1$Year)+1)
+HerbariumData_fl_use$Elevation_s <- scale(HerbariumData_fl_use$Elevation_in_Meters)
+
+
+
+```
+
+
+
+
+```{r}
 #run linear regression
 model_fl <- lm(julian_date ~ Phenophase_detail + Latitude + Longitude + Year, data = HerbariumData_fl)
 summary(model_fl)
 Anova(model_fl)
-
 ```
+
+
 Compare to weibull distribution
 
 ```{r}
