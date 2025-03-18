@@ -4,11 +4,10 @@ author: "Sarah Betts"
 date: "2024-06-11"
 output: html_document
 ---
+# Data wrangling the Herbarium data to join with NOAA
 
 ```{r}
-# #upload herbarium data
-# library(readr)
-# HerbariumData <- read_csv("HerbariumData.csv")
+### Data wrangling the Herbarium data to get it where it needs to be to be joined with NOAA
 
 library(googlesheets4)
 gs4_deauth()
@@ -22,12 +21,11 @@ HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_
 library(tidyverse)
 library(car)
 
-
 HerbariumData_test <-
 HerbariumData %>%
   mutate(Phenophase = as.factor(Phenophase),
          collection_date = as.Date(paste(Year, Month, Day, sep = "-")),
-         Day_of_Year = yday(collection_date), #julien date
+         Day_of_Year = yday(collection_date), #julian date
          Latitude = as.numeric(Latitude)) %>%
   mutate(Elevation_in_Meters = map_dbl(Elevation_in_Meters, ~ ifelse(is.null(.x), NA, as.numeric(.x))))
 
@@ -45,73 +43,51 @@ HerbariumData_fl <-
 HerbariumData_fl <- HerbariumData_fl %>%
   mutate(Phenophase_Status = ifelse(Phenophase_detail %in% "fl", 0, 1))
 
-#use this data set for weibull running
-HerbariumData_fl_use <- HerbariumData_fl %>%
-  filter(!is.na(Elevation_in_Meters)) %>%
-  filter(!is.na(Latitude)) %>%
-  filter(!is.na(Longitude))
-
 #standardize variables for analysis 
-HerbariumData_fl_use$Year <- as.numeric(HerbariumData_fl_use$Year)
-HerbariumData_fl_use$Year_s <- HerbariumData_fl_use$Year-(min(phen_data_0_1$Year)+1)
-HerbariumData_fl_use$Elevation_s <- scale(HerbariumData_fl_use$Elevation_in_Meters)
-
-
+HerbariumData_fl$Year <- as.numeric(HerbariumData_fl$Year)
+HerbariumData_fl$Year_s <- HerbariumData_fl$Year-(min(phen_data_0_1$Year)+1)
+HerbariumData_fl$Elevation_s <- scale(HerbariumData_fl$Elevation_in_Meters)
 
 ```
-
 
 
 
 ```{r}
-#run linear regression
-model_fl <- lm(julian_date ~ Phenophase_detail + Latitude + Longitude + Year, data = HerbariumData_fl)
-summary(model_fl)
-Anova(model_fl)
+#adding elevation information 
+library(elevatr)
+library(sf)
+
+HerbariumData_fl <- HerbariumData_fl %>% drop_na(Longitude, Latitude)
+
+long_lat_df <- HerbariumData_fl[c(14,13)]%>%
+  rename(x = Longitude , y = Latitude) %>%
+  mutate(names = HerbariumData_fl$Observation_ID)
+long_lat_df <- as.data.frame(long_lat_df)
+
+# Define CRS for WGS84 lat/long
+ll_prj <- "+proj=longlat +datum=WGS84 +no_defs"
+
+#takes some time to run
+elevation_df <- get_elev_point(locations = long_lat_df, prj = ll_prj)
+
+analyze_df_elevation <- analyze_df %>%
+  mutate(elevation_calc = elevation_df$elevation) %>%
+  filter(!is.na(elevation_calc))
+
+#combine with data (this does not overwrite the original elevation in meters and only adds to where there are NA)
+analyze_df <- analyze_df %>%
+  mutate(Elevation_in_Meters = coalesce(Elevation_in_Meters, elevation_df$elevation))
+
 ```
 
-
-Compare to weibull distribution
 
 ```{r}
-library(VGAM)
-weibull_model_fl <- vglm(julian_date ~ Phenophase_detail + Latitude + Longitude + Year,
-                      family = weibullR, data = HerbariumData_fl)
-print(weibull_model_fl)
-#find p values
-Anova(weibull_model_fl)
-
+#Prep to collect met data
+#create a subset of HerbariumData that does not have na
+#find the indices for the rows with missing values 
+missing_rows <- which(is.na(HerbariumData$Year) | is.na(HerbariumData$Latitude) | is.na(HerbariumData$Longitude))
+#make new dataframe with the filtered out rows with missing values
+HerbariumData_nona <- HerbariumData[-missing_rows, ]
 ```
-
-
-```{r}
-#mean julian date by phenophase detail and year
-mean_julian_data <- 
-  HerbariumData_fl%>%
-  mutate(Phenophase_detail = as.factor(Phenophase_detail))%>%
-  filter(!is.na(julian_date))%>% #get rid of NA values for julian date
-  group_by(Year, Phenophase_detail)%>%
-  summarize(avg_julian = mean(julian_date, na.rm = TRUE), .groups = 'drop')
-
-ggplot(mean_julian_data, aes(x = Year, y = avg_julian)) +
-  #geom_line()+
-  geom_smooth(method="lm")+
-  geom_point() +
-  labs(title = "Mean Julian Date by Phenophase Detail and Year",
-       x = "Year",
-       y = "Mean Julian Date",
-       color = "Phenophase Detail")
- 
-ggplot(mean_julian_data, aes(x = Year, y = avg_julian, color = Phenophase_detail)) +
-  #geom_line() +
-  geom_point(size=1)+
-  labs(title = "Mean Julian Date by Phenophase Detail and Year",
-       x = "Year",
-       y = "Mean Julian Date",
-       color = "Phenophase Detail")+
-      facet_wrap(~ Phenophase_detail, scales = "free_y") 
-
-```
-
 
 

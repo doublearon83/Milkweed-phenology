@@ -31,14 +31,11 @@ phen_data$Elevation_s <- scale(phen_data$Elevation_in_Meters)
 phen_data_of <- phen_data %>%
   filter(phen_data$Phenophase_Status== 1 & phen_data$Phenophase_Description == "Open flowers")
 
-# subset only initial growth, open flowers, and ripe fruit
-my_patterns <- c("Initial growth","Open flowers","Ripe fruits")
-phen_data_ior <- dplyr::filter(phen_data,grepl(paste(my_patterns, collapse='|'),Phenophase_Description))
-
 # get data for each plant and year where phenophase_status is 1 followed by 0
-phen_data_of_0_1 <- phen_data_ior %>%
+phen_data_of_0_1 <- phen_data %>%
   arrange(Individual_ID, Observation_Date) %>%
   group_by(Year, Individual_ID) %>%
+  filter(Phenophase_Description == "Open flowers") %>%
   filter(lead(Phenophase_Status == 0) & Phenophase_Status == 1)
 
 phen_data_of_0_1$Phenophase_Description[grep("Initial growth",phen_data_of_0_1$Phenophase_Description)] <- "Initial Growth"

@@ -1,36 +1,52 @@
-#use data called HerbariumData_fl_use from herbarium_wrangling.Rmd using just the flowering data
+### Meteo and Herbarium data combined, Weibull
 
+#packages
+library(tidyr)
 library(flexsurv)
 library(survival)
 require(fitdistrplus)
 library(dplyr)
 
-############ finding estimate parameters ########################
-surv_obj <- Surv(HerbariumData_fl_use$Day_of_Year, HerbariumData_fl_use$Phenophase_Status)
+#Data sets
+HerbariumData_fl #from herbarium_wrangling
+combined_df_selected2 #from NOAA_met_data.r
 
-# Fit the Weibull regression model
+analyze_df <- full_join(HerbariumData_fl, combined_df_selected2, by = c("Observation_ID" = "plantid"))
+
+#filter out NAS
+analyze_df <- analyze_df %>%
+  filter(!is.na(mean_prcp)) %>%
+  filter(!is.na(mean_tmax))
+
+###### Weibull ######
+
+############ finding estimate parameters ########################
+H_surv_obj <- Surv(analyze_df$Day_of_Year, analyze_df$Phenophase_Status)
+
+# H_fit the Weibull regression model
 # Covariates Latitude, Longitude, and Elevation_in_Meters 
-fit <- flexsurvreg(surv_obj ~ Latitude + Longitude + Elevation_in_Meters, 
-                   anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters), 
+H_fit <- flexsurvreg(H_surv_obj ~ Latitude + Longitude + Elevation_in_Meters + Year , 
+                   anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year ), 
                    dist = "weibull", 
-                   data = HerbariumData_fl_use)
+                   data = analyze_df)
 # Display the coefficients of the model
-coef(fit)
+coef(H_fit)
 
 # Compute shape and scale parameters using coefficients
-shape_param <- exp(coef(fit)["shape"] +
-                     coef(fit)["shape(Latitude)"] * HerbariumData_fl_use$Latitude +
-                     coef(fit)["shape(Longitude)"] * HerbariumData_fl_use$Longitude +
-                     coef(fit)["shape(Elevation_in_Meters)"] * HerbariumData_fl_use$Elevation_in_Meters)
+H_shape_param_bias <- exp(coef(H_fit_bias)["shape"] +
+                            coef(H_fit_bias)["shape(Latitude)"] * analyze_df$Latitude +
+                            coef(H_fit_bias)["shape(Longitude)"] * analyze_df$Longitude +
+                            coef(H_fit_bias)["shape(Elevation_in_Meters)"] * analyze_df$Elevation_in_Meters +
+                            coef(H_fit_bias)["shape(Year)"] * analyze_df$Year)
 
-scale_param <- exp(coef(fit)["scale"] +
-                     coef(fit)["Latitude"] * HerbariumData_fl_use$Latitude +
-                     coef(fit)["Longitude"] * HerbariumData_fl_use$Longitude +
-                     coef(fit)["Elevation_in_Meters"] * HerbariumData_fl_use$Elevation_in_Meters)
+H_scale_param_bias <- exp(coef(H_fit_bias)["scale"] +
+                            coef(H_fit_bias)["Latitude"] * analyze_df$Latitude +
+                            coef(H_fit_bias)["Longitude"] * analyze_df$Longitude +
+                            coef(H_fit_bias)["Elevation_in_Meters"] * analyze_df$Elevation_in_Meters  +
+                            coef(H_fit_bias)["Year"] * analyze_df$Year)
 
-
-scale_shape <- data.frame(HerbariumData_fl_use$Observation_ID, shape_param, scale_param) %>% 
-  rename(Observation_ID = HerbariumData_fl_use.Observation_ID )
+H_scale_shape <- data.frame(analyze_df$Observation_ID, H_shape_param, H_scale_param) %>% 
+  rename(Observation_ID = analyze_df.Observation_ID )
 
 ##################################################################
 ############Run through for all percentiles (hard coded)##################
@@ -39,34 +55,36 @@ ni <- 100  # Set the number of iterations
 samp_size <- 1
 percentile <- 0.01
 
-new_data <- matrix(0, nrow = nrow(scale_shape), ncol = ni)
+new_data <- matrix(0, nrow = nrow(H_scale_shape), ncol = ni)
 
-scale_shape$qweibull <- mapply(qweibull, percentile, scale_shape$shape_param, scale_shape$scale_param)
+H_scale_shape$qweibull <- mapply(qweibull, percentile, H_scale_shape$H_shape_param, H_scale_shape$H_scale_param)
 
 for (j in 1:ni) {
-  random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
-                                  scale_shape$shape_param, scale_shape$scale_param, SIMPLIFY = FALSE)
+  H_random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
+                                  H_scale_shape$H_shape_param, H_scale_shape$H_scale_param, SIMPLIFY = FALSE)
   
-  surv_obj_bias <- Surv(as.numeric(random_samples_matrix), HerbariumData_fl_use$Phenophase_Status)
+  H_surv_obj_bias <- Surv(as.numeric(H_random_samples_matrix), analyze_df$Phenophase_Status)
   
-  fit_bias <- flexsurvreg(surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters, 
-                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters), 
+  H_fit_bias <- flexsurvreg(H_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year, 
+                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year ), 
                           dist = "weibull", 
-                          data = HerbariumData_fl_use)
+                          data = analyze_df)
   
-  shape_param_bias <- exp(coef(fit_bias)["shape"] +
-                            coef(fit_bias)["shape(Latitude)"] * HerbariumData_fl_use$Latitude +
-                            coef(fit_bias)["shape(Longitude)"] * HerbariumData_fl_use$Longitude +
-                            coef(fit_bias)["shape(Elevation_in_Meters)"] * HerbariumData_fl_use$Elevation_in_Meters)
+  H_shape_param_bias <- exp(coef(H_fit_bias)["shape"] +
+                            coef(H_fit_bias)["shape(Latitude)"] * analyze_df$Latitude +
+                            coef(H_fit_bias)["shape(Longitude)"] * analyze_df$Longitude +
+                            coef(H_fit_bias)["shape(Elevation_in_Meters)"] * analyze_df$Elevation_in_Meters +
+                              coef(H_fit_bias)["shape(Year)"] * analyze_df$Year)
   
-  scale_param_bias <- exp(coef(fit_bias)["scale"] +
-                            coef(fit_bias)["Latitude"] * HerbariumData_fl_use$Latitude +
-                            coef(fit_bias)["Longitude"] * HerbariumData_fl_use$Longitude +
-                            coef(fit_bias)["Elevation_in_Meters"] * HerbariumData_fl_use$Elevation_in_Meters)
+  H_scale_param_bias <- exp(coef(H_fit_bias)["scale"] +
+                            coef(H_fit_bias)["Latitude"] * analyze_df$Latitude +
+                            coef(H_fit_bias)["Longitude"] * analyze_df$Longitude +
+                            coef(H_fit_bias)["Elevation_in_Meters"] * analyze_df$Elevation_in_Meters  +
+                              coef(H_fit_bias)["Year"] * analyze_df$Year)
   
-  qweibull_estimated <- mapply(qweibull, percentile, shape_param_bias, scale_param_bias)
+  H_qweibull_estimated <- mapply(qweibull, percentile, H_shape_param_bias, H_scale_param_bias)
   
-  new_data[, j] <- qweibull_estimated
+  new_data[, j] <- H_qweibull_estimated
 }
 
 if (ni == 1) {
@@ -76,48 +94,51 @@ if (ni == 1) {
 }
 
 bias_results_herbarium_0.01 <- data.frame(
-  Observation_ID = scale_shape$Observation_ID,
-  Original = scale_shape$qweibull,
+  Observation_ID = H_scale_shape$Observation_ID,
+  Original = H_scale_shape$qweibull,
   Column_Means = column_means,
-  Bias = column_means - scale_shape$qweibull,
-  corrected_0.01 = 2*scale_shape$qweibull-column_means, #Belitz paper
+  Bias = column_means - H_scale_shape$qweibull,
+  corrected_0.01 = 2*H_scale_shape$qweibull-column_means, #Belitz paper
   percentile = percentile
 )
 
 
 
-ni <- 100  # Set the number of iterations 
+ni <- 500  # Set the number of iterations 
 samp_size <- 1
 percentile <- 0.5
 
-new_data <- matrix(0, nrow = nrow(scale_shape), ncol = ni)
+new_data <- matrix(0, nrow = nrow(H_scale_shape), ncol = ni)
 
-scale_shape$qweibull <- mapply(qweibull, percentile, scale_shape$shape_param, scale_shape$scale_param)
+H_scale_shape$qweibull <- mapply(qweibull, percentile, H_scale_shape$H_shape_param, H_scale_shape$H_scale_param)
 
 for (j in 1:ni) {
-  random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
-                                  scale_shape$shape_param, scale_shape$scale_param, SIMPLIFY = FALSE)
+  H_random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
+                                  H_scale_shape$H_shape_param, H_scale_shape$H_scale_param, SIMPLIFY = FALSE)
   
-  surv_obj_bias <- Surv(as.numeric(random_samples_matrix), HerbariumData_fl_use$Phenophase_Status)
+  H_surv_obj_bias <- Surv(as.numeric(H_random_samples_matrix), analyze_df$Phenophase_Status)
   
-  fit_bias <- flexsurvreg(surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters, 
-                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters), 
+  H_fit_bias <- flexsurvreg(H_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year , 
+                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year ), 
                           dist = "weibull", 
-                          data = HerbariumData_fl_use)
+                          data = analyze_df)
   
-  shape_param_bias <- exp(coef(fit_bias)["shape"] +
-                            coef(fit_bias)["shape(Latitude)"] * HerbariumData_fl_use$Latitude +
-                            coef(fit_bias)["shape(Longitude)"] * HerbariumData_fl_use$Longitude +
-                            coef(fit_bias)["shape(Elevation_in_Meters)"] * HerbariumData_fl_use$Elevation_in_Meters)
   
-  scale_param_bias <- exp(coef(fit_bias)["scale"] +
-                            coef(fit_bias)["Latitude"] * HerbariumData_fl_use$Latitude +
-                            coef(fit_bias)["Longitude"] * HerbariumData_fl_use$Longitude +
-                            coef(fit_bias)["Elevation_in_Meters"] * HerbariumData_fl_use$Elevation_in_Meters)
+  H_shape_param_bias <- exp(coef(H_fit_bias)["shape"] +
+                              coef(H_fit_bias)["shape(Latitude)"] * analyze_df$Latitude +
+                              coef(H_fit_bias)["shape(Longitude)"] * analyze_df$Longitude +
+                              coef(H_fit_bias)["shape(Elevation_in_Meters)"] * analyze_df$Elevation_in_Meters +
+                              coef(H_fit_bias)["shape(Year)"] * analyze_df$Year)
   
-  qweibull_estimated <- mapply(qweibull, percentile, shape_param_bias, scale_param_bias)
+  H_scale_param_bias <- exp(coef(H_fit_bias)["scale"] +
+                              coef(H_fit_bias)["Latitude"] * analyze_df$Latitude +
+                              coef(H_fit_bias)["Longitude"] * analyze_df$Longitude +
+                              coef(H_fit_bias)["Elevation_in_Meters"] * analyze_df$Elevation_in_Meters  +
+                              coef(H_fit_bias)["Year"] * analyze_df$Year)
   
-  new_data[, j] <- qweibull_estimated
+  H_qweibull_estimated <- mapply(qweibull, percentile, H_shape_param_bias, H_scale_param_bias)
+  
+  new_data[, j] <- H_qweibull_estimated
 }
 
 if (ni == 1) {
@@ -127,45 +148,48 @@ if (ni == 1) {
 }
 
 bias_results_herbarium_0.5 <- data.frame(
-  Observation_ID = scale_shape$Observation_ID,
-  Original = scale_shape$qweibull,
+  Observation_ID = H_scale_shape$Observation_ID,
+  Original = H_scale_shape$qweibull,
   Column_Means = column_means,
-  Bias = column_means - scale_shape$qweibull,
-  corrected_0.5 = 2*scale_shape$qweibull-column_means, #Belitz paper
+  Bias = column_means - H_scale_shape$qweibull,
+  corrected_0.5 = 2*H_scale_shape$qweibull-column_means, #Belitz paper
   percentile = percentile
 )
 
-ni <- 100   
+ni <- 500   
 samp_size <- 1
 percentile <- 0.99
 
-new_data <- matrix(0, nrow = nrow(scale_shape), ncol = ni)
+new_data <- matrix(0, nrow = nrow(H_scale_shape), ncol = ni)
 
-scale_shape$qweibull <- mapply(qweibull, percentile, scale_shape$shape_param, scale_shape$scale_param)
+H_scale_shape$qweibull <- mapply(qweibull, percentile, H_scale_shape$H_shape_param, H_scale_shape$H_scale_param)
 
 for (j in 1:ni) {
-  random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
-                                  scale_shape$shape_param, scale_shape$scale_param, SIMPLIFY = FALSE)
+  H_random_samples_matrix <- mapply(function(shape, scale) qweibull(runif(samp_size), shape, scale),
+                                  H_scale_shape$H_shape_param, H_scale_shape$H_scale_param, SIMPLIFY = FALSE)
   
-  surv_obj_bias <- Surv(as.numeric(random_samples_matrix), HerbariumData_fl_use$Phenophase_Status)
-  fit_bias <- flexsurvreg(surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters, 
-                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters), 
+  H_surv_obj_bias <- Surv(as.numeric(H_random_samples_matrix), analyze_df$Phenophase_Status)
+  H_fit_bias <- flexsurvreg(H_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year , 
+                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year), 
                           dist = "weibull", 
-                          data = HerbariumData_fl_use)
+                          data = analyze_df)
   
-  shape_param_bias <- exp(coef(fit_bias)["shape"] +
-                            coef(fit_bias)["shape(Latitude)"] * HerbariumData_fl_use$Latitude +
-                            coef(fit_bias)["shape(Longitude)"] * HerbariumData_fl_use$Longitude +
-                            coef(fit_bias)["shape(Elevation_in_Meters)"] * HerbariumData_fl_use$Elevation_in_Meters)
   
-  scale_param_bias <- exp(coef(fit_bias)["scale"] +
-                            coef(fit_bias)["Latitude"] * HerbariumData_fl_use$Latitude +
-                            coef(fit_bias)["Longitude"] * HerbariumData_fl_use$Longitude +
-                            coef(fit_bias)["Elevation_in_Meters"] * HerbariumData_fl_use$Elevation_in_Meters)
+  H_shape_param_bias <- exp(coef(H_fit_bias)["shape"] +
+                              coef(H_fit_bias)["shape(Latitude)"] * analyze_df$Latitude +
+                              coef(H_fit_bias)["shape(Longitude)"] * analyze_df$Longitude +
+                              coef(H_fit_bias)["shape(Elevation_in_Meters)"] * analyze_df$Elevation_in_Meters +
+                              coef(H_fit_bias)["shape(Year)"] * analyze_df$Year)
   
-  qweibull_estimated <- mapply(qweibull, percentile, shape_param_bias, scale_param_bias)
+  H_scale_param_bias <- exp(coef(H_fit_bias)["scale"] +
+                              coef(H_fit_bias)["Latitude"] * analyze_df$Latitude +
+                              coef(H_fit_bias)["Longitude"] * analyze_df$Longitude +
+                              coef(H_fit_bias)["Elevation_in_Meters"] * analyze_df$Elevation_in_Meters  +
+                              coef(H_fit_bias)["Year"] * analyze_df$Year)
   
-  new_data[, j] <- qweibull_estimated
+  H_qweibull_estimated <- mapply(qweibull, percentile, H_shape_param_bias, H_scale_param_bias)
+  
+  new_data[, j] <- H_qweibull_estimated
 }
 
 if (ni == 1) {
@@ -175,11 +199,11 @@ if (ni == 1) {
 }
 
 bias_results_herbarium_0.99 <- data.frame(
-  Observation_ID = scale_shape$Observation_ID,
-  Original = scale_shape$qweibull,
+  Observation_ID = H_scale_shape$Observation_ID,
+  Original = H_scale_shape$qweibull,
   Column_Means = column_means,
-  Bias = column_means - scale_shape$qweibull,
-  corrected_0.99 = 2*scale_shape$qweibull-column_means, #Belitz paper
+  Bias = column_means - H_scale_shape$qweibull,
+  corrected_0.99 = 2*H_scale_shape$qweibull-column_means, #Belitz paper
   percentile = percentile
 )
 
@@ -188,6 +212,37 @@ bias_results_herbarium_0.99 <- data.frame(
 bias_results_herbarium <- bind_rows(bias_results_herbarium_0.5, 
                               bias_results_herbarium_0.01, 
                               bias_results_herbarium_0.99)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+H_shape_param_bias <- exp(coef(H_fit_bias)["shape"] +
+                            coef(H_fit_bias)["shape(Latitude)"] * analyze_df$Latitude +
+                            coef(H_fit_bias)["shape(Longitude)"] * analyze_df$Longitude +
+                            coef(H_fit_bias)["shape(Elevation_in_Meters)"] * analyze_df$Elevation_in_Meters +
+                            coef(H_fit_bias)["shape(Year)"] * analyze_df$Year+
+                            coef(H_fit_bias)["shape(mean_tmax)"] * analyze_df$mean_tmax+
+                            coef(H_fit_bias)["shape(mean_prcp)"] * analyze_df$mean_prcp)
+
+H_scale_param_bias <- exp(coef(H_fit_bias)["scale"] +
+                            coef(H_fit_bias)["Latitude"] * analyze_df$Latitude +
+                            coef(H_fit_bias)["Longitude"] * analyze_df$Longitude +
+                            coef(H_fit_bias)["Elevation_in_Meters"] * analyze_df$Elevation_in_Meters  +
+                            coef(H_fit_bias)["Year"] * analyze_df$Year+
+                            coef(H_fit_bias)["mean_tmax"] * analyze_df$mean_tmax+
+                            coef(H_fit_bias)["mean_prcp"] * analyze_df$mean_prcp)
 
 
 
