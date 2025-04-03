@@ -43,11 +43,6 @@ HerbariumData_fl <-
 HerbariumData_fl <- HerbariumData_fl %>%
   mutate(Phenophase_Status = ifelse(Phenophase_detail %in% "fl", 0, 1))
 
-#standardize variables for analysis 
-HerbariumData_fl$Year <- as.numeric(HerbariumData_fl$Year)
-HerbariumData_fl$Year_s <- HerbariumData_fl$Year-(min(phen_data_0_1$Year)+1)
-HerbariumData_fl$Elevation_s <- scale(HerbariumData_fl$Elevation_in_Meters)
-
 ```
 
 
@@ -56,6 +51,7 @@ HerbariumData_fl$Elevation_s <- scale(HerbariumData_fl$Elevation_in_Meters)
 #adding elevation information 
 library(elevatr)
 library(sf)
+library(dplyr)
 
 HerbariumData_fl <- HerbariumData_fl %>% drop_na(Longitude, Latitude)
 
@@ -70,19 +66,29 @@ ll_prj <- "+proj=longlat +datum=WGS84 +no_defs"
 #takes some time to run
 elevation_df <- get_elev_point(locations = long_lat_df, prj = ll_prj)
 
-analyze_df_elevation <- analyze_df %>%
-  mutate(elevation_calc = elevation_df$elevation) %>%
-  filter(!is.na(elevation_calc))
+#check that the length is equal to the length of HerbariumData_fl
+nrow(HerbariumData_fl) == nrow(elevation_df)
 
-#combine with data (this does not overwrite the original elevation in meters and only adds to where there are NA)
-analyze_df <- analyze_df %>%
-  mutate(Elevation_in_Meters = coalesce(Elevation_in_Meters, elevation_df$elevation))
+#add elevation to Elevation_in_Meters only where there are NA (this will not overwrite the original elevation)
+HerbariumData_fl <- HerbariumData_fl %>%
+  left_join(select(elevation_df, names, elevation), by = c("Observation_ID" = "names")) %>%  
+  mutate(Elevation_in_Meters = ifelse(is.na(Elevation_in_Meters), elevation, Elevation_in_Meters)) %>%  
+  select(-elevation)
 
+#check how many nas there are. If there are NAs itmost likely means it is located not in America, so these are ones we need to find manually most likely
+HerbariumData_fl$Observation_ID[which(is.na(HerbariumData_fl$Elevation_in_Meters))]
+```
+
+```{r}
+#standardize variables for analysis 
+HerbariumData_fl$Year <- as.numeric(HerbariumData_fl$Year)
+HerbariumData_fl$Year_s <- HerbariumData_fl$Year-(min(phen_data_0_1$Year)+1)
+HerbariumData_fl$Elevation_s <- scale(HerbariumData_fl$Elevation_in_Meters)
 ```
 
 
 ```{r}
-#Prep to collect met data
+#Wrangling to collect met data in NOAA_mat_data.r
 #create a subset of HerbariumData that does not have na
 #find the indices for the rows with missing values 
 missing_rows <- which(is.na(HerbariumData$Year) | is.na(HerbariumData$Latitude) | is.na(HerbariumData$Longitude))

@@ -32,7 +32,7 @@ system.time({
   # Iterate through the specified range of rows
   for (i in start_row:end_row) {
     # Extract the plant_id, latitude, longitude, and year
-    plant_id <- HerbariumData_nona$Identification[i]
+    plant_id <- HerbariumData_nona$Observation_ID[i]
     latitude <- HerbariumData_nona$Latitude[i]
     longitude <- HerbariumData_nona$Longitude[i]
     year <- HerbariumData_nona$Year[i]
@@ -75,13 +75,13 @@ system.time({
 })
 
 # Save the batch results to an existing CSV file
-output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations.csv'
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations_.csv'
 write.csv(batch_results_df, file = output_file, row.names = FALSE)
 
 #####################################################
 #####################################################
 #uploading stations data
-stations <- read.csv("stations2", header = TRUE)
+stations <- read.csv("stations2_", header = TRUE)
 
 #uploading stat_plant_data
 stat_plant <- read.csv("stat_plant", header = TRUE)
@@ -90,7 +90,7 @@ stat_plant <- read.csv("stat_plant", header = TRUE)
 # Initialize ONCE, 
 #met_df <- data.frame()
 met_df <- read.csv("met_data.csv")
-stations2 <- read.csv("nearest_stations.csv")
+stations2 <- read.csv("nearest_stations_.csv")
 
 #start with 637 next
 start_row <- 1
@@ -143,7 +143,7 @@ system.time({
 })
 
 # Save the batch results to an existing CSV file
-output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data.csv'
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data_.csv'
 write.csv(met_df, file = output_file, row.names = FALSE)
 
 ###########################################################
@@ -153,11 +153,11 @@ na_subset <- met_df %>%
   filter(is.na(prcp) | is.na(tmax)) %>%
   dplyr::select(plantid) %>%
   distinct() %>%
-  inner_join(HerbariumData_nona, by = join_by(plantid == Identification))
+  inner_join(HerbariumData_nona, by = join_by(plantid == Observation_ID))
 
 # Initialize ONCE, 
 #na_df <- data.frame()
-na_df <- read.csv("nearest_stations2.csv")
+na_df <- read.csv("nearest_stations2_.csv")
 
 # Define the range of rows, next start with 353
 start_row <- 1
@@ -210,15 +210,15 @@ system.time({
 })
 
 # Save the batch results to an existing CSV file
-output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations2.csv'
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations2_.csv'
 write.csv(na_df, file = output_file, row.names = FALSE)
 
 ###find the met data for second closest station####
 
 # Initialize ONCE, 
 #met_df2 <- data.frame()
-met_df2 <- read.csv("met_data2.csv")
-stations3 <- read.csv("nearest_stations2.csv")
+met_df2 <- read.csv("met_data2_.csv")
+stations3 <- read.csv("nearest_stations2_.csv")
 
 start_row <- 1
 end_row <- 352
@@ -270,7 +270,7 @@ system.time({
 })
 
 # Save the batch results to an existing CSV file
-output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data2.csv'
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data2_.csv'
 write.csv(met_df2, file = output_file, row.names = FALSE)
 
 ######################################################
@@ -285,7 +285,7 @@ na2_subset <- met_df2 %>%
 
 # Initialize ONCE, 
 #na_df2 <- data.frame()
-na_df2 <- read.csv("nearest_stations3.csv")
+na_df2 <- read.csv("nearest_stations3_.csv")
 
 # Define the range of rows, next start with 353
 start_row <- 1
@@ -338,15 +338,15 @@ system.time({
 })
 
 # Save the batch results to an existing CSV file
-output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations3.csv'
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/nearest_stations3_.csv'
 write.csv(na_df2, file = output_file, row.names = FALSE)
 
 ###find the met data for third closest station####
 
 # Initialize ONCE, 
 #met_df3 <- data.frame()
-met_df3 <- read.csv("met_data3.csv")
-stations4 <- read.csv("nearest_stations3.csv")
+met_df3 <- read.csv("met_data3_.csv")
+stations4 <- read.csv("nearest_stations3_.csv")
 
 start_row <- 1
 end_row <- 352
@@ -398,7 +398,7 @@ system.time({
 })
 
 # Save the batch results to an existing CSV file
-output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data3.csv'
+output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/GitHub/Milkweed-phenology/met_data3_.csv'
 write.csv(met_df3, file = output_file, row.names = FALSE)
 
 
@@ -407,23 +407,23 @@ write.csv(met_df3, file = output_file, row.names = FALSE)
 #distance, station, plant id, tmax, prcp, date, year 
 
 #dataset with stations and their met data
-stations2 <- read.csv("nearest_stations.csv")
-met_df <- read.csv("met_data.csv")
+stations2 <- read.csv("nearest_stations_.csv")
+met_df <- read.csv("met_data_.csv")
 #minus the na data points, distance, long/lat
 colnames(stations2)[colnames(stations2) == "PlantID"] <- "plantid"
 data1 <- left_join(met_df, stations2 %>% dplyr::select(id, plantid, Distance), by = c("id", "plantid")) %>%
   filter(!is.na(prcp) | !is.na(tmax))
 
 #dataset with second closest stations and their met data
-stations3 <- read.csv("nearest_stations2.csv")
-met_df2 <- read.csv("met_data2.csv")
+stations3 <- read.csv("nearest_stations2_.csv")
+met_df2 <- read.csv("met_data2_.csv")
 colnames(stations3)[colnames(stations3) == "PlantID"] <- "plantid"
 data2 <- left_join(met_df2, stations3 %>% dplyr::select(id, plantid, Distance), by = c("id", "plantid"))  %>%
   filter(!is.na(prcp) | !is.na(tmax))
 
 #dataset with third closest stations and their met data
-stations4 <- read.csv("nearest_stations3.csv")
-met_df3 <- read.csv("met_data3.csv")
+stations4 <- read.csv("nearest_stations3_.csv")
+met_df3 <- read.csv("met_data3_.csv")
 colnames(stations4)[colnames(stations4) == "PlantID"] <- "plantid"
 data3 <- left_join(met_df3, stations4 %>% dplyr::select(id, plantid, Distance), by = c("id", "plantid")) 
 
@@ -465,7 +465,7 @@ combined_df_selected1 <- combined_df %>%
     mean_distance = mean(Distance, na.rm = TRUE))%>%
   filter(!is.nan(mean_prcp) & !is.nan(mean_distance) & !is.nan(mean_tmax)) 
 
-#join temp, prcp, distance data with HerbariumData_fl data (generated from Herbarium.rmd)
+#select variables we want
 combined_df_selected2 <- combined_df_selected1 %>%
   dplyr::select(plantid, mean_prcp, mean_tmax, mean_distance)
 
