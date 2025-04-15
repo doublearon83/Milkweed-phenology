@@ -455,41 +455,36 @@ combined_df <- combined_df %>%
   # Select the relevant columns
   dplyr::select(id, plantid, date, Year, prcp, tmax, Distance)
 
-
-#for each plant id, find the mean prcp, max, and distance
-combined_df_selected1 <- combined_df %>%
+# Step 1: Get summary statistics
+combined_df_summary <- combined_df %>%
   group_by(plantid) %>%
   summarize(
     mean_prcp = mean(prcp, na.rm = TRUE),
     mean_tmax = mean(tmax, na.rm = TRUE),
-    mean_distance = mean(Distance, na.rm = TRUE))%>%
-  filter(!is.nan(mean_prcp) & !is.nan(mean_distance) & !is.nan(mean_tmax)) 
+    mean_distance = mean(Distance, na.rm = TRUE)
+  ) %>%
+  filter(!is.nan(mean_prcp) & !is.nan(mean_tmax) & !is.nan(mean_distance))
 
-#select variables we want
-combined_df_selected2 <- combined_df_selected1 %>%
-  dplyr::select(plantid, mean_prcp, mean_tmax, mean_distance)
+# Step 2: combined_df with station id, Join back to get the id where Distance equals mean_distance
+combined_df_selected2 <- combined_df %>%
+  inner_join(combined_df_summary, by = "plantid") %>%
+  filter(Distance == mean_distance) %>%
+  dplyr::select(plantid, id, mean_prcp, mean_tmax, mean_distance)
 
+#step 3: get rid of multiples
+combined_df_selected2 <- combined_df_selected2 %>%
+  group_by(plantid) %>%
+  slice(1) %>%
+  ungroup()
 
+#convert tmax from tenth of celcius to celcius 
+combined_df_selected2 <- combined_df_selected2 %>%
+  mutate(mean_tmax = mean_tmax / 10)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#check if any stations > 40 m away
+combined_df_selected2 %>%
+  filter(mean_distance > 40) %>%
+  dplyr::select(id, mean_distance)
 
 
 
@@ -508,7 +503,7 @@ combined_df_selected2 <- combined_df_selected1 %>%
 
 
 #####################################################
-### Plots for visualization ##not sure if necessary to keep)
+### Plots for visualization 
 
 
 #uploading stations data
