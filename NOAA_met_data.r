@@ -24,9 +24,9 @@ status_intensity_observation_sub  <- status_intensity_observation[,c(4,5,13,15,1
 #batch_results_df <- data.frame()
 batch_results_df <- read.csv("nearest_stations.csv")
 
-# Define the range of rows, next start with 637
+# Define the range of rows, next start with 647
 start_row <- 1
-end_row <- 636
+end_row <- 646
 
 system.time({
   # Iterate through the specified range of rows
@@ -94,7 +94,7 @@ stations2 <- read.csv("nearest_stations_.csv")
 
 #start with 637 next
 start_row <- 1
-end_row <- 636
+end_row <- 646
 
 system.time({
   # Iterate through the specified range of rows
@@ -159,9 +159,11 @@ na_subset <- met_df %>%
 #na_df <- data.frame()
 na_df <- read.csv("nearest_stations2_.csv")
 
-# Define the range of rows, next start with 353
+#check number of rows
+nrow(na_subset)
+# Define the range of rows, next start with 359
 start_row <- 1
-end_row <- 352
+end_row <- 358
 
 system.time({
   # Iterate through the specified range of rows
@@ -221,7 +223,7 @@ met_df2 <- read.csv("met_data2_.csv")
 stations3 <- read.csv("nearest_stations2_.csv")
 
 start_row <- 1
-end_row <- 352
+end_row <- 358
 
 system.time({
   # Iterate through the specified range of rows
@@ -274,7 +276,7 @@ output_file <- '/Users/sarah/OneDrive - Franklin & Marshall College/Documents/Gi
 write.csv(met_df2, file = output_file, row.names = FALSE)
 
 ######################################################
-#To find a third closest station if the first has NA values
+#To find a third closest station if the second has NA values
 #create a subset
 na2_subset <- met_df2 %>%
   filter(is.na(prcp) | is.na(tmax)) %>%
@@ -287,9 +289,10 @@ na2_subset <- met_df2 %>%
 #na_df2 <- data.frame()
 na_df2 <- read.csv("nearest_stations3_.csv")
 
-# Define the range of rows, next start with 353
+nrow(na2_subset)
+# Define the range of rows, next start with 358
 start_row <- 1
-end_row <- 352
+end_row <- 358
 
 system.time({
   # Iterate through the specified range of rows
@@ -313,7 +316,7 @@ system.time({
                                           var = "TMAX",
                                           year_min = year,
                                           year_max = year,
-                                          limit = 2)
+                                          limit = 3)
         
         # Extract the station name and distance from the first station in the list
         
@@ -348,8 +351,9 @@ write.csv(na_df2, file = output_file, row.names = FALSE)
 met_df3 <- read.csv("met_data3_.csv")
 stations4 <- read.csv("nearest_stations3_.csv")
 
+nrow(stations4)
 start_row <- 1
-end_row <- 352
+end_row <- 358
 
 system.time({
   # Iterate through the specified range of rows

@@ -52,7 +52,7 @@ H_scale_shape <- data.frame(analyze_df$Observation_ID, H_shape_param, H_scale_pa
 ##################################################################
 ############Run through for all percentiles (hard coded)##################
 
-ni <- 100  # Set the number of iterations 
+ni <- 500  # Set the number of iterations 
 samp_size <- 1
 percentile <- 0.01
 
@@ -111,7 +111,7 @@ bias_results_herbarium_0.01 <- data.frame(
 
 
 
-ni <- 100  # Set the number of iterations 
+ni <- 500  # Set the number of iterations 
 samp_size <- 1
 percentile <- 0.5
 
@@ -125,8 +125,8 @@ for (j in 1:ni) {
   
   H_surv_obj_bias <- Surv(as.numeric(H_random_samples_matrix), analyze_df$Phenophase_Status)
   
-  H_fit_bias <- flexsurvreg(H_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax, 
-                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax ), 
+  H_fit_bias <- flexsurvreg(H_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax + mean_prcp, 
+                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax + mean_prcp ), 
                           dist = "weibull", 
                           data = analyze_df)
   
@@ -169,7 +169,7 @@ bias_results_herbarium_0.5 <- data.frame(
   percentile = percentile
 )
 
-ni <- 100   
+ni <- 500   
 samp_size <- 1
 percentile <- 0.99
 
@@ -182,8 +182,8 @@ for (j in 1:ni) {
                                   H_scale_shape$H_shape_param, H_scale_shape$H_scale_param, SIMPLIFY = FALSE)
   
   H_surv_obj_bias <- Surv(as.numeric(H_random_samples_matrix), analyze_df$Phenophase_Status)
-  H_fit_bias <- flexsurvreg(H_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax, 
-                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax  ), 
+  H_fit_bias <- flexsurvreg(H_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax + mean_prcp, 
+                          anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year + mean_tmax + mean_prcp ), 
                           dist = "weibull", 
                           data = analyze_df)
   
