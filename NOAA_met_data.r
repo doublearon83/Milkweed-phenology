@@ -459,8 +459,31 @@ combined_df <- combined_df %>%
   # Select the relevant columns
   dplyr::select(id, plantid, date, Year, prcp, tmax, Distance)
 
+
+#subset this to get only plants with a full growing season
+
+#extract month
+month_data <- combined_df %>%
+  mutate(date = as.Date(date),    
+         Month = month(date))  
+
+# Filter only months from March (3) to November (11) - gs that we defined
+growing_season <- month_data %>%
+  filter(Month >= 3 & Month <= 11)
+
+# Check for each plantid and year if all 9 months are present
+valid_plants <- growing_season %>%
+  group_by(plantid, Year) %>%
+  summarise(months_present = n_distinct(Month), .groups = "drop") %>%
+  filter(months_present == 9)
+
+# Keep only rows for those valid plantid + Year combinations
+gs_subset <- growing_season %>%
+  semi_join(valid_plants, by = c("plantid", "Year"))
+
+
 # Step 1: Get summary statistics
-combined_df_summary <- combined_df %>%
+combined_df_summary <- gs_subset %>%
   group_by(plantid) %>%
   summarize(
     mean_prcp = mean(prcp, na.rm = TRUE),
@@ -489,21 +512,6 @@ combined_df_selected2 <- combined_df_selected2 %>%
 combined_df_selected2 %>%
   filter(mean_distance > 40) %>%
   dplyr::select(id, mean_distance)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #####################################################
