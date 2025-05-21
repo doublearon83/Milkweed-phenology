@@ -1,7 +1,7 @@
 library(flexsurv)
 library(survival)
 require(fitdistrplus)
-library(dplyr)
+library(tidyverse)
 
 ############ finding estimate parameters ########################
  NPN_surv_obj <- Surv(phen_data_of$Day_of_Year, phen_data_of$Phenophase_Status)
@@ -40,7 +40,7 @@ NPN_scale_shape <- data.frame(phen_data_of$Observation_ID, NPN_shape_param, NPN_
 ###########################################################################
 ############Run through for all percentiles (hard coded)##################
 
-ni <- 100  # Set the number of iterations 
+ni <- 500  # Set the number of iterations 
 samp_size <- 1
 percentile <- 0.01
 
@@ -83,7 +83,7 @@ for (j in 1:ni) {
 if (ni == 1) {
   column_means <- new_data
 } else {
-  column_means <- colMeans(new_data, na.rm = TRUE)
+  column_means <- rowMeans(new_data, na.rm = TRUE)
 }
 
 bias_results_NPN_0.01 <- data.frame(
@@ -96,7 +96,7 @@ bias_results_NPN_0.01 <- data.frame(
 )
 
 
-ni <- 100  # Set the number of iterations 
+ni <- 500  # Set the number of iterations 
 samp_size <- 1
 percentile <- 0.5
 
@@ -140,7 +140,7 @@ for (j in 1:ni) {
 if (ni == 1) {
   column_means <- new_data
 } else {
-  column_means <- colMeans(new_data, na.rm = TRUE)
+  column_means <- rowMeans(new_data, na.rm = TRUE)
 }
 
 bias_results_NPN_0.5 <- data.frame(
@@ -152,7 +152,7 @@ bias_results_NPN_0.5 <- data.frame(
   percentile = percentile
 )
 
-ni <- 100   
+ni <- 500   
 samp_size <- 1
 percentile <- 0.99
 
@@ -165,6 +165,7 @@ for (j in 1:ni) {
                                   NPN_scale_shape$NPN_shape_param, NPN_scale_shape$NPN_scale_param, SIMPLIFY = FALSE)
   
    NPN_surv_obj_bias <- Surv(as.numeric(NPN_random_samples_matrix), phen_data_of$Phenophase_Status)
+   
    NPN_fit_bias <- flexsurvreg( NPN_surv_obj_bias ~ Latitude + Longitude + Elevation_in_Meters + Year + gs_temp + gs_precip, 
                           anc = list(shape = ~ Latitude + Longitude + Elevation_in_Meters + Year + gs_temp + gs_precip), 
                           dist = "weibull", 
@@ -195,7 +196,7 @@ for (j in 1:ni) {
 if (ni == 1) {
   column_means <- new_data
 } else {
-  column_means <- colMeans(new_data, na.rm = TRUE)
+  column_means <- rowMeans(new_data, na.rm = TRUE)
 }
 
 bias_results_NPN_0.99 <- data.frame(

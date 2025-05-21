@@ -1,11 +1,10 @@
 ### Met and Herbarium data combined, Weibull
 
 #packages
-library(tidyr)
 library(flexsurv)
 library(survival)
 require(fitdistrplus)
-library(dplyr)
+library(tidyverse)
 
 #Data sets
 HerbariumData_fl #from herbarium_wrangling

@@ -1,8 +1,9 @@
 ####Extracting meteorological data from NOAA
 
 #packages
-library(dplyr)
-library(tidyr)
+library(tidyverse)
+require(devtools)
+#devtools::install_github("ropensci/rnoaa")#for downloading rnoaa from github
 library(rnoaa)
 
 

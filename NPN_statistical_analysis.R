@@ -8,10 +8,10 @@ combined_data_phenof_01 <- inner_join(bias_results_NPN, phen_data_of_0_1, by = "
 
 #only look at dates 2014-2022
 combined_data_phenof <- combined_data_phenof %>%
-  filter(Year >=2014 & Year <= 2022)
+  filter(Year >=2014 & Year <= 2024)
 
 combined_data_phenof_01 <-combined_data_phenof_01 %>%
-  filter(Year >= 2014 & Year <= 2022)
+  filter(Year >= 2014 & Year <= 2024)
 
 
 

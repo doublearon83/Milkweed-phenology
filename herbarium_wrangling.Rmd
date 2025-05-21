@@ -17,7 +17,7 @@ HerbariumData <- read_sheet("https://docs.google.com/spreadsheets/d/13vqlJXSW35_
 
 
 ```{r}
-#Run regression (controlling for lat, long, and flowering state)
+#Data wrangling
 library(tidyverse)
 library(car)
 
@@ -51,7 +51,6 @@ HerbariumData_fl <- HerbariumData_fl %>%
 #adding elevation information 
 library(elevatr)
 library(sf)
-library(dplyr)
 
 HerbariumData_fl <- HerbariumData_fl %>% drop_na(Longitude, Latitude)
 
@@ -82,7 +81,7 @@ HerbariumData_fl$Observation_ID[which(is.na(HerbariumData_fl$Elevation_in_Meters
 ```{r}
 #standardize variables for analysis 
 HerbariumData_fl$Year <- as.numeric(HerbariumData_fl$Year)
-HerbariumData_fl$Year_s <- HerbariumData_fl$Year-(min(phen_data_0_1$Year)+1)
+HerbariumData_fl$Year_s <- HerbariumData_fl$Year-(min(HerbariumData_fl$Year, na.rm=T)+1)
 HerbariumData_fl$Elevation_s <- scale(HerbariumData_fl$Elevation_in_Meters)
 ```
 

@@ -1,7 +1,7 @@
 ### Linear model of Herbarium_fl data (Herbarium data with met data from NOAA)
 
 #packages
-library(dplyr)
+library(tidyverse)
 
 #data sets
 bias_results_herbarium #herbarium_weibull
